@@ -5,46 +5,43 @@ A personal app that organises every part of your life in one place, in shades of
 ## Sections
 
 ### Planner
-- **Today**: a dashboard with today's tasks, anytime-this-week tasks, events, today's duty, today's meals and macros, meds to take, priority shopping, mood and water, savings and loans, next trip, and a journal prompt.
+- **Today**: a dashboard with today's tasks, events, your duty and the on-call doctor, meds, meals, shopping list, study goals, wellbeing, finances, next trip and a journal prompt.
 - **Weekly to-do**
-  - Seven day cards, **Sunday Saturday**, plus a separate **Anytime this week** list for tasks that can be done any day.
-  - The week **starts fresh every Sunday**. Unfinished tasks from earlier weeks can be moved into the new week with one tap.
-  - Ticked tasks are **crossed out**. Tap to **highlight a priority** task, or type `!` at the start of a quick-add (e.g. `!Pay bills`).
-- **Monthly to-do**
-  - Opens on a **month calendar**. Tap a day to select it and add tasks or events to it.
-  - **Every task and event for the month** is listed below the calendar, with All / To do / Done / Priority filters.
-  - **Reminders** on tasks and events. You can set them to go off at the time, or 10 minutes to 1 week before.
-  - Done tasks are crossed out and priority ones are highlighted.
+  - Seven day cards, **Sunday to Saturday**, plus a separate **Anytime this week** list. The week starts fresh every Sunday, and unfinished tasks can be moved into the new week.
+  - Ticked tasks are crossed out. Tap the star (or start a quick-add with `!`) to **highlight a priority** task.
+  - Your duty and the on-call doctor show on each day.
+- **Monthly to-do**: a **separate list from the weekly to-do**.
+  - Opens on a month calendar. Tap a day to add tasks or events to it.
+  - A **general to-do for the month** holds things that can be done any time that month.
+  - Lists every task and event for the month, with All / To do / Done / Priority filters.
+  - **Reminders** can be set on tasks and events. Done tasks are crossed out and priority ones highlighted.
 - **Duty roster**
-  - A weekly roster (Sun–Sat) built from reusable shift types (Morning, Evening, Night, Day off, or your own), or custom duties with an optional person and location.
-  - Copy last week's roster, see total hours, add the week to your phone calendar, and keep notes for the week.
-  - Duties also show on the weekly to-do and the Today page.
+  - **Upload the full roster** for each week (photo, screenshot or PDF). It's stored on your device.
+  - For each day, write your duty (from reusable shift types or a custom duty), **who you're working with** and **the on-call doctor**.
+  - Copy last week's duties, see total hours, add the week to your phone calendar, and keep notes for the week.
 
 ### Home & health
-- **Meal prep**
-  - Seven days (Sun–Sat) with Breakfast, Lunch, Dinner and Snacks.
-  - Each meal is built from foods with amounts and **protein, carbs, fat and kcal**. Calories are calculated automatically (4·P + 4·C + 9·F) if you leave kcal blank.
-  - Shows meal, day and week totals against your daily targets.
-  - Foods are remembered and auto-filled the next time you type them.
-  - A **prep & shopping list** adds up the ingredients for the whole week and can send them to Things to buy.
-  - Copy last week's plan with one tap.
-- **Things to buy**: shopping lists. Bought items are crossed out, priority items are highlighted and sorted to the top, and you can keep more than one list.
+- **Meal prep**: Sunday to Saturday, with Breakfast, Lunch, Dinner and Snacks. Calculates protein, carbs, fat and calories for each meal, day and week against your targets. Foods are remembered, and the week's ingredients can be sent to the shopping list.
+- **Shopping list**: bought items are crossed out, and priority items are highlighted and sorted to the top.
 - **Health** (in tabs)
-  - **Daily**: mood, water, sleep, exercise, steps and notes, with 14-day trend charts.
-  - **Body**: height, weight and waist circumference, with **trend graphs**, BMI and waist-to-height ratio.
-  - **Cycle**: a **month calendar** to log flow (spotting, light, medium, heavy) and symptoms. It works out your average cycle and period length, predicts the next period, and estimates the fertile window.
-  - **Poop**: a **month calendar** to log how many times and the Bristol stool type, with monthly stats.
-  - **Meds**: a grid of **every day of the month for each medication**. Tap to mark it taken; meds taken several times a day are counted dose by dose. Shows your adherence %.
+  - **Daily**: mood, water, sleep, exercise, steps and notes, with trend charts.
+  - **Body**: **weight, waist, arms and hips**. Each has its own trend graph, and a combined graph shows how **all measurements** have changed since your first entry. Also shows your waist-to-hip ratio.
+  - **Cycle**: a month calendar showing **which day of your cycle** each date is, a "Day X of your cycle" summary with the current phase, the predicted next period and the fertile window.
+  - **Poop**: a month calendar. Select a day to see **how many times**, the **consistency of each one** (Bristol scale), and **whether you took a laxative** (and which one).
+  - **Meds**: a month calendar. Select a day to tick each medication for **morning, afternoon or night** and see what was taken when. Also shows how consistently you've taken each medication this month.
 
 ### Money & travel
 - **Finances**
-  - **Savings**: accounts in **MVR and USD**, totals in each currency, and a combined total with an adjustable exchange rate. Record deposits, withdrawals or a new balance, and see a savings trend chart.
-  - **Loans**: **loans taken** (money I owe) and **loans given** (money owed to me), with repayments, remaining balance, progress, due dates and an overdue warning.
-  - **Spending**: monthly income and expenses, category budgets, and a 6-month trend.
-- **Travel plans**: trips with a **day-by-day itinerary** (flights, stays, transport, activities, food) including times, booking references and costs. Each trip has a packing list, and the whole itinerary can be exported to your phone calendar.
+  - **Savings** in **MVR and USD**, with combined totals at an exchange rate you can change.
+  - **Loans taken and given**, with repayments and due dates.
+  - **Spending** and budgets.
+- **Travel plans**: day-by-day **itineraries**, a packing list, and export to your phone calendar.
 
 ### Personal
 - **Journal** with mood and a daily prompt.
+- **Study plan**
+  - **Topics to revise**, grouped by subject. Each topic has a status (To revise, Revising, Confident), a revision log, an optional deadline and a priority highlight.
+  - **Weekly goals**, plus daily study hours against a weekly target.
 - **Habits**, **Goals** and **Notes**.
 
 ## Reminders
@@ -64,7 +61,7 @@ python3 -m http.server 8000
 
 ## Your data
 
-Everything is saved in your browser's `localStorage` on this device. Use **Settings Export backup** regularly, and to move your data to another device (**Import backup**). Clearing your browser's site data deletes your LifeOS data.
+Everything is saved in your browser's `localStorage` on this device. Use **Settings Export backup** regularly, and to move your data to another device (**Import backup**). Clearing your browser's site data deletes your LifeOS data. Uploaded roster files are kept on the device but are not part of the backup file.
 
 ## Keyboard shortcuts
 
@@ -78,9 +75,10 @@ Everything is saved in your browser's `localStorage` on this device. Use **Setti
 | `js/icons.js` | Custom SVG icon set |
 | `js/core.js` | Utilities, storage, forms, calendar and chart helpers, tasks and events, reminders, calendar export |
 | `js/planner.js` | Today, Weekly to-do, Monthly to-do, Duty roster |
-| `js/life.js` | Meal prep, Things to buy, Health |
+| `js/life.js` | Meal prep, Shopping list, Health |
 | `js/money.js` | Savings, Loans, Spending |
 | `js/travel.js` | Travel itineraries and packing |
 | `js/more.js` | Journal, Habits, Goals, Notes, Settings |
+| `js/study.js` | Study plan: topics to revise, weekly goals, study hours |
 | `js/main.js` | Navigation, rendering, event wiring |
 | `sw.js`, `manifest.json`, `icon.svg` | Offline support and installing as an app |

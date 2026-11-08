@@ -60,6 +60,9 @@ const ICON_PATHS = {
   mood3: '<circle cx="12" cy="12" r="9"/><circle class="f" cx="9" cy="10" r="1"/><circle class="f" cx="15" cy="10" r="1"/><path d="M9 15.2h6"/>',
   mood4: '<circle cx="12" cy="12" r="9"/><circle class="f" cx="9" cy="10" r="1"/><circle class="f" cx="15" cy="10" r="1"/><path d="M8.8 14.3c1.6 1.6 4.8 1.6 6.4 0"/>',
   mood5: '<circle cx="12" cy="12" r="9"/><path d="M7.8 10c.5-1 1.7-1 2.2 0M14 10c.5-1 1.7-1 2.2 0"/><path d="M8 13.5h8a4 4 0 0 1-8 0Z"/>',
+  sunrise: '<path d="M3 19h18M6 19a6 6 0 0 1 12 0M12 4v5M9.5 6.5 12 4l2.5 2.5M4.6 11.6l1.4 1.4M19.4 11.6 18 13"/>',
+  grad: '<path d="M2.5 9 12 4.5 21.5 9 12 13.5 2.5 9Z"/><path d="M6.5 11v5c1.5 1.6 3.3 2.4 5.5 2.4s4-.8 5.5-2.4v-5M21.5 9v5"/>',
+  layers: '<path d="M12 3.5 21 8l-9 4.5L3 8l9-4.5Z"/><path d="m3 12.5 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/>',
   // money & travel
   wallet: '<path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6"/><circle class="f" cx="16.5" cy="14" r="1.2"/>',
   bank: '<path d="M3 9.5 12 4l9 5.5M4.5 10h15M6 10v8M10 10v8M14 10v8M18 10v8M3.5 20.5h17"/>',

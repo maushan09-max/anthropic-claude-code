@@ -183,7 +183,7 @@ views.settings = () => {
   const perm = 'Notification' in window ? Notification.permission : 'unsupported';
   const counts = [['Tasks', db.tasks.length], ['Events', db.events.length], ['Meal plans (weeks)', Object.keys(db.meals).length], ['Saved foods', db.foods.length],
     ['Body measurements', db.body.length], ['Medications', db.meds.length], ['Savings accounts', db.accounts.length], ['Loans', db.loans.length],
-    ['Duty roster weeks', Object.keys(db.roster).length], ['Trips', db.trips.length], ['Journal entries', db.journal.length], ['Notes', db.notes.length]];
+    ['Duty roster weeks', Object.keys(db.roster).length], ['Study topics', db.study.topics.length], ['Trips', db.trips.length], ['Journal entries', db.journal.length], ['Notes', db.notes.length]];
   return `<div class="grid">
     <div class="card"><h2>${hi('sliders')} Profile</h2>
       <label class="field"><span>Your name</span><input value="${esc(s.name)}" data-change="setting" data-id="name" placeholder="For your greeting"></label>
@@ -199,7 +199,7 @@ views.settings = () => {
         ${perm === 'default' ? '<button class="btn sm primary" data-action="enableNotify">Enable</button>' : ''}
         ${perm === 'granted' ? '<button class="btn sm" data-action="testNotify">Test</button>' : ''}</div></div>
     <div class="card"><h2>${hi('download')} Backup & restore</h2>
-      <p class="small muted">Everything is stored privately in this browser. Export a backup regularly, and to move to another device.</p>
+      <p class="small muted">Everything is stored privately in this browser. Export a backup regularly, and to move to another device. Uploaded roster files stay on this device and are not included in the backup.</p>
       <div class="row"><button class="btn primary" data-action="exportData">${icon('download')} Export backup</button>
         <label class="btn">${icon('upload')} Import backup<input type="file" accept="application/json,.json" data-change="importData" hidden></label></div></div>
     <div class="card"><h2>${hi('chart')} Your data</h2>

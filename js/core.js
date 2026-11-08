@@ -49,6 +49,7 @@ const REPEATS = [['none', 'Does not repeat'], ['daily', 'Daily'], ['weekly', 'We
 const REMINDS = [['', 'No reminder'], ['0', 'At the time'], ['10', '10 minutes before'], ['30', '30 minutes before'], ['60', '1 hour before'],
   ['120', '2 hours before'], ['1440', '1 day before'], ['2880', '2 days before'], ['10080', '1 week before']];
 const MOODS = [1, 2, 3, 4, 5].map((i) => icon('mood' + i));
+const MED_SLOTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['night', 'Night']];
 const WATER_GOAL = 8;
 
 // ---------- Storage ----------
@@ -56,6 +57,7 @@ const KEY = 'lifeos.v1';
 const defaults = () => ({
   tasks: [], events: [], habits: [], goals: [], transactions: [], budgets: {}, health: {}, journal: [], notes: [], lists: [],
   meals: {}, foods: [], body: [], cycle: {}, poop: {}, meds: [], accounts: [], loans: [], roster: {}, dutyTypes: null, trips: [], fired: {},
+  study: { topics: [], goals: {}, hours: {}, target: 10 },
   settings: { name: '', currency: 'MVR', theme: 'auto', usdRate: 15.42, targets: { kcal: 2000, p: 120, c: 200, f: 65 } },
 });
 function migrate(d) {
@@ -67,7 +69,23 @@ function migrate(d) {
     if (t.important === undefined) t.important = t.priority === 'high';
     if (!t.due && !t.week) t.week = ws;
   });
-  if (!out.lists.length) out.lists.push({ id: uid(), name: 'Things to buy', items: [] });
+  if (!out.lists.length) out.lists.push({ id: uid(), name: 'Shopping list', items: [] });
+  out.lists.forEach((l) => { if (l.name === 'Things to buy') l.name = 'Shopping list'; });
+  out.study = { topics: [], goals: {}, hours: {}, target: 10, ...(d.study || {}) };
+  // Poop log v2: one entry per bowel movement + laxative flag
+  for (const [day, e] of Object.entries(out.poop)) {
+    if (e && !Array.isArray(e.entries)) {
+      const n = Number(e.count || 0);
+      out.poop[day] = { entries: Array.from({ length: n }, () => ({ id: uid(), time: '', type: e.type || '' })), none: n === 0, laxative: false, laxName: '', notes: e.notes || '' };
+    }
+  }
+  // Meds v2: scheduled times of day (morning / afternoon / night)
+  out.meds.forEach((m) => {
+    if (!Array.isArray(m.slots)) m.slots = MED_SLOTS.slice(0, Math.max(1, Math.min(3, Number(m.times) || 1))).map((x) => x[0]);
+    for (const [day, v] of Object.entries(m.log || {})) {
+      if (typeof v === 'number') { const o = {}; MED_SLOTS.slice(0, Math.min(3, v)).forEach(([k]) => { o[k] = true; }); m.log[day] = o; }
+    }
+  });
   if (!Array.isArray(out.dutyTypes)) {
     out.dutyTypes = [
       { id: uid(), name: 'Morning', start: '07:00', end: '15:00', color: '#e6489b' },
@@ -291,13 +309,16 @@ function eventItem(e, date) {
     </div></li>`;
 }
 
+const isWeekly = (t) => t.scope !== 'month';
+const isMonthly = (t) => t.scope === 'month';
 function taskForm(task, preset = {}) {
+  const monthly = (task?.scope || preset.scope) === 'month';
   openForm({
-    title: task ? 'Edit task' : 'New task',
+    title: `${task ? 'Edit' : 'New'} ${monthly ? 'monthly' : 'weekly'} task`,
     values: { remind: '', repeat: 'none', ...preset, ...task },
     fields: [
       { name: 'title', label: 'Task', required: true, placeholder: 'What needs doing?' },
-      { name: 'due', label: 'Day', type: 'date', half: true, hint: 'Leave empty = anytime this week' },
+      { name: 'due', label: 'Day', type: 'date', half: true, hint: monthly ? 'Leave empty = anytime this month' : 'Leave empty = anytime this week' },
       { name: 'time', label: 'Time', type: 'time', half: true },
       { name: 'remind', label: 'Reminder', type: 'select', options: REMINDS, half: true },
       { name: 'repeat', label: 'Repeat', type: 'select', options: REPEATS, half: true },
@@ -306,9 +327,11 @@ function taskForm(task, preset = {}) {
     ],
     onSave: (v) => {
       if (hasReminder(v)) askNotify();
-      const week = v.due ? weekStart(v.due) : task ? taskWeek(task) : preset.week || state.week;
-      if (task) Object.assign(task, v, { week });
-      else db.tasks.push({ id: uid(), done: false, created: Date.now(), ...v, week });
+      let where;
+      if (monthly) where = { scope: 'month', month: v.due ? v.due.slice(0, 7) : task?.month || preset.month || state.calMonth };
+      else where = { week: v.due ? weekStart(v.due) : task ? taskWeek(task) : preset.week || state.week };
+      if (task) Object.assign(task, v, where);
+      else db.tasks.push({ id: uid(), done: false, created: Date.now(), ...v, ...where });
     },
     onDelete: task ? () => remove('tasks', task.id) : null,
     extra: [{ label: 'Add to phone calendar', icon: 'calPlus', onClick: (v) => (v.due ? downloadIcs([{ item: { ...task, ...v, id: task?.id || uid() }, date: v.due }]) : toast('Pick a day first')) }],
@@ -341,6 +364,7 @@ function eventForm(ev, preset = {}) {
 
 Object.assign(actions, {
   newTask: (id) => {
+    if (id && id.startsWith('m|')) { const v = id.slice(2); return taskForm(null, v.length === 10 ? { scope: 'month', due: v, month: v.slice(0, 7) } : { scope: 'month', month: v }); }
     if (id && /^\d{4}-\d\d-\d\d$/.test(id)) return taskForm(null, { due: id });
     if (id && id.startsWith('any|')) return taskForm(null, { week: split(id)[1] });
     taskForm(null);
@@ -356,16 +380,18 @@ Object.assign(actions, {
     if (t.done && t.repeat && t.repeat !== 'none' && !t.spawned) {
       t.spawned = true;
       const n = { ...t, id: uid(), done: false, completed: null, spawned: false, created: Date.now() };
-      if (t.due) { n.due = nextDate(t.due, t.repeat); n.week = weekStart(n.due); } else n.week = addDays(taskWeek(t), 7);
+      if (t.due) { n.due = nextDate(t.due, t.repeat); n.week = weekStart(n.due); if (isMonthly(t)) n.month = n.due.slice(0, 7); }
+      else if (isMonthly(t)) n.month = addMonths(t.month, 1);
+      else n.week = addDays(taskWeek(t), 7);
       db.tasks.push(n);
-      toast(`Next one added for ${n.due ? relDay(n.due) : 'next week'}`);
+      toast(`Next one added for ${n.due ? relDay(n.due) : isMonthly(t) ? 'next month' : 'next week'}`);
     }
     commit();
   },
   newEvent: (d) => eventForm(null, d && /^\d{4}-/.test(d) ? { date: d } : {}),
   editEvent: (id) => eventForm(find('events', id)),
 });
-/** Quick-add: data-id is a date, "any|<weekStart>", or empty (= today). Prefix with "!" to mark priority. */
+/** Quick-add: data-id is a date, "any|<weekStart>", "m|<YYYY-MM[-DD]>" (monthly list), or empty (= today). Prefix with "!" to mark priority. */
 forms.quickTask = (f) => {
   let title = f.elements.title.value.trim();
   if (!title) return;
@@ -373,7 +399,8 @@ forms.quickTask = (f) => {
   if (important) title = title.slice(1).trim();
   const id = f.dataset.id || today();
   const t = { id: uid(), title, important, repeat: 'none', remind: '', done: false, created: Date.now() };
-  if (id.startsWith('any|')) { t.due = ''; t.week = split(id)[1]; } else { t.due = id; t.week = weekStart(id); }
+  if (id.startsWith('m|')) { const v = id.slice(2); t.scope = 'month'; t.due = v.length === 10 ? v : ''; t.month = v.slice(0, 7); }
+  else if (id.startsWith('any|')) { t.due = ''; t.week = split(id)[1]; } else { t.due = id; t.week = weekStart(id); }
   db.tasks.push(t);
   commit();
   $(`form[data-form=quickTask][data-id="${f.dataset.id || ''}"] input`)?.focus();
@@ -454,4 +481,70 @@ function download(text, name, type) {
   a.href = URL.createObjectURL(new Blob([text], { type }));
   a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+// ---------- After-render hooks (for async content such as uploaded files) ----------
+const afterRender = [];
+
+// ---------- File store (IndexedDB) — uploaded files are too big for localStorage ----------
+const fileStore = (() => {
+  let dbp;
+  const open = () => (dbp ||= new Promise((res, rej) => {
+    const r = indexedDB.open('lifeos-files', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('files');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const tx = (mode, fn) => open().then((d) => new Promise((res, rej) => {
+    const t = d.transaction('files', mode); const req = fn(t.objectStore('files'));
+    t.oncomplete = () => res(req?.result); t.onerror = () => rej(t.error);
+  }));
+  return {
+    put: (key, val) => tx('readwrite', (st) => st.put(val, key)),
+    get: (key) => tx('readonly', (st) => st.get(key)),
+    del: (key) => tx('readwrite', (st) => st.delete(key)),
+  };
+})();
+/** Shrink large photos so they store quickly; PDFs and small images are kept as-is. */
+function compressImage(file, max = 2200, quality = 0.85) {
+  if (!file.type.startsWith('image/') || file.size < 600 * 1024) return Promise.resolve(file);
+  return new Promise((res) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob((b) => res(b || file), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); res(file); };
+    img.src = url;
+  });
+}
+
+/** Several measurements on one chart, each shown as change since its first entry. series: [{label, color, unit, pts:[{date,v}]}] */
+function multiLineChart(series) {
+  const ser = series.filter((x) => x.pts.length);
+  const all = ser.flatMap((x) => x.pts.map((p) => ({ t: parseYmd(p.date).getTime(), d: p.v - x.pts[0].v })));
+  if (all.length < 2 || !ser.some((x) => x.pts.length > 1)) return '<div class="empty small">Add at least two entries to see the trends.</div>';
+  const W = 340, H = 170, L = 34, R = 10, T = 12, B = 22;
+  const x0 = Math.min(...all.map((p) => p.t)), x1 = Math.max(...all.map((p) => p.t));
+  let y0 = Math.min(0, ...all.map((p) => p.d)), y1 = Math.max(0, ...all.map((p) => p.d));
+  if (y0 === y1) { y0 -= 1; y1 += 1; }
+  const pad = (y1 - y0) * 0.12; const lo = y0 - pad, hi = y1 + pad;
+  const X = (t) => L + (x1 === x0 ? 0.5 : (t - x0) / (x1 - x0)) * (W - L - R);
+  const Y = (y) => T + (1 - (y - lo) / (hi - lo)) * (H - T - B);
+  const lines = ser.map((x) => {
+    const pts = x.pts.map((p) => [X(parseYmd(p.date).getTime()), Y(p.v - x.pts[0].v), p]);
+    return `<path d="${pts.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)},${b.toFixed(1)}`).join(' ')}" fill="none" stroke="${x.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${pts.map(([a, b, p]) => `<circle cx="${a.toFixed(1)}" cy="${b.toFixed(1)}" r="3" fill="${x.color}"><title>${esc(x.label)} ${esc(fmtDate(p.date))}: ${p.v} ${x.unit}</title></circle>`).join('')}`;
+  }).join('');
+  const sign = (n) => (n > 0 ? '+' : '') + round1(n);
+  return `<svg viewBox="0 0 ${W} ${H}" class="line-chart" role="img" aria-label="Change in all measurements">
+    <line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" class="grid-line"/>
+    <text x="${L - 4}" y="${Y(y1) + 3}" text-anchor="end">${sign(y1)}</text><text x="${L - 4}" y="${Y(0) + 3}" text-anchor="end">0</text>
+    ${y0 < 0 ? `<text x="${L - 4}" y="${Y(y0) + 3}" text-anchor="end">${sign(y0)}</text>` : ''}
+    ${lines}
+    <text x="${L}" y="${H - 5}">${esc(fmtDate(ymd(new Date(x0)), { month: 'short', day: 'numeric' }))}</text>
+    <text x="${W - R}" y="${H - 5}" text-anchor="end">${esc(fmtDate(ymd(new Date(x1)), { month: 'short', day: 'numeric' }))}</text></svg>
+    <div class="legend">${ser.map((x) => `<span><i class="lg" style="background:${x.color}"></i>${esc(x.label)} (${x.unit})</span>`).join('')}</div>`;
 }
