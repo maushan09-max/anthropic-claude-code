@@ -6,8 +6,8 @@ const rosterGet = (ws) => db.roster[ws] || { days: {}, notes: '' };
 const rosterDay = (d) => rosterGet(weekStart(d)).days[parseYmd(d).getDay()] || [];
 const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 const dutyHours = (x) => { if (!x.start || !x.end) return 0; let d = toMin(x.end) - toMin(x.start); if (d <= 0) d += 1440; return d / 60; };
-const dutyChip = (x, ref) => `<span class="duty ${ref ? 'clickable' : ''}" style="--c:${esc(x.color || '#64748b')}" ${ref ? `data-action="editDuty" data-id="${ref}|${x.id}"` : ''}>
-  <b>${esc(x.title)}</b>${x.start ? ` ${esc(x.start)}–${esc(x.end)}` : ''}${x.person ? ` · ${esc(x.person)}` : ''}${x.location ? ` · 📍${esc(x.location)}` : ''}</span>`;
+const dutyChip = (x, ref) => `<span class="duty ${ref ? 'clickable' : ''}" style="--c:${esc(x.color || '#a43fc2')}" ${ref ? `data-action="editDuty" data-id="${ref}|${x.id}"` : ''}>
+  <b>${esc(x.title)}</b>${x.start ? ` ${esc(x.start)}–${esc(x.end)}` : ''}${x.person ? ` · ${esc(x.person)}` : ''}${x.location ? ` · ${esc(x.location)}` : ''}</span>`;
 
 // ---------- Today ----------
 views.today = () => {
@@ -32,7 +32,7 @@ views.today = () => {
 
   return `
   <div class="section hello">
-    <div class="hello-title">${greet}${db.settings.name ? ', ' + esc(db.settings.name) : ''} 👋</div>
+    <div class="hello-title">${greet}${db.settings.name ? ', ' + esc(db.settings.name) : ''}</div>
     <div class="muted">${esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))}</div>
   </div>
   <div class="stats">
@@ -43,55 +43,55 @@ views.today = () => {
   </div>
   <div class="grid">
     <div class="card">
-      <h2>✅ Today <span class="spacer"></span><a class="card-link" href="#/weekly">Week →</a></h2>
+      <h2>${hi('checkCircle')} Today <span class="spacer"></span><a class="card-link" href="#/weekly">Week ${icon('chevR')}</a></h2>
       <form class="quick-add" data-form="quickTask" data-id="${t}"><input name="title" placeholder="Add a task for today… (start with ! for priority)" autocomplete="off"><button class="btn primary">Add</button></form>
-      ${todays.length ? `<ul class="items">${todays.map((x) => taskItem(x)).join('')}</ul>` : empty('🎉', 'Nothing due today.')}
+      ${todays.length ? `<ul class="items">${todays.map((x) => taskItem(x)).join('')}</ul>` : empty('sparkle', 'Nothing due today.')}
       ${anytime.length ? `<div class="section-title">Anytime this week</div><ul class="items">${anytime.slice(0, 6).map((x) => taskItem(x)).join('')}</ul>` : ''}
     </div>
     <div class="card">
-      <h2>📅 Schedule <span class="spacer"></span><button class="btn sm" data-action="newEvent" data-id="${t}">+ Event</button></h2>
+      <h2>${hi('calendar')} Schedule <span class="spacer"></span><button class="btn sm" data-action="newEvent" data-id="${t}">+ Event</button></h2>
       ${duties.length ? `<div class="duty-line">${duties.map((d) => dutyChip(d)).join('')}</div>` : ''}
-      ${evs.length ? `<ul class="items">${evs.map((e) => eventItem(e, t)).join('')}</ul>` : empty('🗓️', 'No events today.')}
+      ${evs.length ? `<ul class="items">${evs.map((e) => eventItem(e, t)).join('')}</ul>` : empty('calendar', 'No events today.')}
       ${tomorrow.length ? `<div class="section-title">Tomorrow</div><ul class="items">${tomorrow.map((e) => eventItem(e, addDays(t, 1))).join('')}</ul>` : ''}
     </div>
-    ${meds.length ? `<div class="card"><h2>💊 Meds today <span class="spacer"></span><a class="card-link" href="#/health" data-action="goHealth" data-id="meds">All →</a></h2>
+    ${meds.length ? `<div class="card"><h2>${hi('pill')} Meds today <span class="spacer"></span><a class="card-link" href="#/health" data-action="goHealth" data-id="meds">All ${icon('chevR')}</a></h2>
       <ul class="items">${meds.map((m) => { const n = m.log?.[t] || 0; const full = n >= m.times; return `<li class="item ${full ? 'done' : ''}" style="align-items:center">
         <div class="body"><div class="title">${esc(m.name)}</div><div class="meta">${esc(m.dose || '')}${m.times > 1 ? ` · ${m.times}× a day` : ''}</div></div>
-        <button class="mcell ${full ? 'full' : n ? 'part' : ''}" data-action="medDose" data-id="${m.id}|${t}">${full ? '✓' : n ? `${n}/${m.times}` : 'Take'}</button></li>`; }).join('')}</ul></div>` : ''}
+        <button class="mcell ${full ? 'full' : n ? 'part' : ''}" data-action="medDose" data-id="${m.id}|${t}">${full ? icon('check') : n ? `${n}/${m.times}` : 'Take'}</button></li>`; }).join('')}</ul></div>` : ''}
     <div class="card">
-      <h2>🍱 Meals today <span class="spacer"></span><a class="card-link" href="#/meals">Meal prep →</a></h2>
+      <h2>${hi('bowl')} Meals today <span class="spacer"></span><a class="card-link" href="#/meals">Meal prep ${icon('chevR')}</a></h2>
       <ul class="items">${SLOTS.map((s) => { const m = getMeal(ws, di, s); return `<li class="item clickable" data-action="editMeal" data-id="${ws}|${di}|${s}">
         <div class="body"><div class="small muted">${s}</div><div class="title">${m && (m.name || m.items?.length) ? esc(mealTitle(m)) : '<span class="muted">+ Plan</span>'}</div></div>
         ${m ? `<span class="small muted">${Math.round(mealMacros(m).kcal)} kcal</span>` : ''}</li>`; }).join('')}</ul>
       <div class="small" style="margin-top:8px">${macroLine(dm)}</div>${bar(T.kcal ? (dm.kcal / T.kcal) * 100 : 0, dm.kcal > T.kcal * 1.05 ? 'over' : '')}
     </div>
     <div class="card">
-      <h2>🛒 Things to buy <span class="spacer"></span><a class="card-link" href="#/shopping">${shop.length} to buy →</a></h2>
-      ${shopTop.length ? `<ul class="items">${shopTop.map((i) => shopItem(i.list, i)).join('')}</ul>` : empty('🧺', 'Shopping list is clear.')}
+      <h2>${hi('cart')} Things to buy <span class="spacer"></span><a class="card-link" href="#/shopping">${shop.length} to buy ${icon('chevR')}</a></h2>
+      ${shopTop.length ? `<ul class="items">${shopTop.map((i) => shopItem(i.list, i)).join('')}</ul>` : empty('bag', 'Shopping list is clear.')}
     </div>
     <div class="card">
-      <h2>❤️ Wellbeing <span class="spacer"></span><a class="card-link" href="#/health">Health →</a></h2>
+      <h2>${hi('heart')} Wellbeing <span class="spacer"></span><a class="card-link" href="#/health">Health ${icon('chevR')}</a></h2>
       <div class="small muted">How are you feeling?</div>
       <div class="moods" style="margin:6px 0 12px">${MOODS.map((e, i) => `<button class="mood-btn ${h.mood == i + 1 ? 'on' : ''}" data-action="setMood" data-id="${t}|${i + 1}">${e}</button>`).join('')}</div>
       <div class="row"><span class="small muted grow">Water ${h.water || 0}/${WATER_GOAL} glasses</span>
-        <button class="btn sm" data-action="water" data-id="${t}|-1">−</button><button class="btn sm" data-action="water" data-id="${t}|1">+ 💧</button></div>
+        <button class="btn sm" data-action="water" data-id="${t}|-1">−</button><button class="btn sm" data-action="water" data-id="${t}|1">+ ${icon('drop')}</button></div>
       <div style="margin-top:6px">${bar(((h.water || 0) / WATER_GOAL) * 100, (h.water || 0) >= WATER_GOAL ? 'done' : '')}</div>
     </div>
     <div class="card">
-      <h2>💰 Finances <span class="spacer"></span><a class="card-link" href="#/finances">Details →</a></h2>
+      <h2>${hi('wallet')} Finances <span class="spacer"></span><a class="card-link" href="#/finances">Details ${icon('chevR')}</a></h2>
       <div class="kv"><span>Savings (MVR)</span><b>${fmtCur(sv.MVR, 'MVR')}</b></div>
       <div class="kv"><span>Savings (USD)</span><b>${fmtCur(sv.USD, 'USD')}</b></div>
       ${lo.activeCount ? `<div class="kv"><span>I owe</span><b class="bad">${curList(lo.owe)}</b></div><div class="kv"><span>Owed to me</span><b class="good">${curList(lo.owed)}</b></div>` : ''}
     </div>
-    ${trip ? `<div class="card clickable" data-action="openTrip" data-id="${trip.id}"><h2>✈️ Next trip</h2>
+    ${trip ? `<div class="card clickable" data-action="openTrip" data-id="${trip.id}"><h2>${hi('plane')} Next trip</h2>
       <div style="font-size:18px;font-weight:600">${esc(trip.name)}</div><div class="muted small">${esc(trip.destination || '')} · ${esc(tripDates(trip))}</div>
       <div style="margin-top:8px">${tripCountdown(trip)}</div></div>` : ''}
     <div class="card">
-      <h2>📔 Journal</h2>
-      <div class="prompt small">💭 ${esc(dailyPrompt())}</div>
+      <h2>${hi('book')} Journal</h2>
+      <div class="prompt small">${icon('chat')} ${esc(dailyPrompt())}</div>
       ${jToday ? `<button class="btn sm" data-action="editJournal" data-id="${jToday.id}">Continue today’s entry</button>` : '<button class="btn primary sm" data-action="newJournal">Write today’s entry</button>'}
     </div>
-    ${db.habits.length ? `<div class="card"><h2>🔁 Habits <span class="spacer"></span><a class="card-link" href="#/habits">Manage →</a></h2>
+    ${db.habits.length ? `<div class="card"><h2>${hi('repeat')} Habits <span class="spacer"></span><a class="card-link" href="#/habits">Manage ${icon('chevR')}</a></h2>
       <ul class="items">${db.habits.map((x) => habitRow(x, true)).join('')}</ul></div>` : ''}
   </div>`;
 };
@@ -110,7 +110,7 @@ views.weekly = () => {
       <h3><span>${DOW[i]}</span><span class="muted small">${esc(fmtDate(d, { month: 'short', day: 'numeric' }))}</span>${d === t ? '<span class="chip today-chip">Today</span>' : ''}
         <span class="spacer"></span><span class="small muted">${list.length ? `${list.filter((x) => x.done).length}/${list.length}` : ''}</span></h3>
       ${duties.length ? `<div class="duty-line">${duties.map((x) => dutyChip(x)).join('')}</div>` : ''}
-      ${evs.map((e) => `<div class="mini-ev ${e.important ? 'important' : ''} clickable" data-action="editEvent" data-id="${e.id}">${e.important ? '★ ' : ''}${e.time ? esc(fmtTime(e.time)) + ' · ' : ''}${esc(e.title)}</div>`).join('')}
+      ${evs.map((e) => `<div class="mini-ev ${e.important ? 'important' : ''} clickable" data-action="editEvent" data-id="${e.id}">${e.important ? starIcon(true) + ' ' : ''}${e.time ? esc(fmtTime(e.time)) + ' · ' : ''}${esc(e.title)}</div>`).join('')}
       <ul class="items">${list.map((x) => taskItem(x)).join('')}</ul>
       <form class="quick-add" data-form="quickTask" data-id="${d}"><input name="title" placeholder="Add task…" autocomplete="off" aria-label="Add task for ${DOW[i]}"><button class="btn sm" aria-label="Add">+</button></form>
     </div>`;
@@ -119,13 +119,13 @@ views.weekly = () => {
   return `
   <div class="toolbar">${weekNav('week')}<span class="grow"></span>
     <div class="progress-pill">${done}/${inWeek.length} done ${bar(inWeek.length ? (done / inWeek.length) * 100 : 0, 'done')}</div></div>
-  ${leftovers.length ? `<div class="banner">📦 ${plural(leftovers.length, 'unfinished task')} from previous weeks.
+  ${leftovers.length ? `<div class="banner">${icon('box')} ${plural(leftovers.length, 'unfinished task')} from previous weeks.
     <button class="btn sm primary" data-action="carryOver">Move to this week</button></div>` : ''}
-  <p class="hint">Week runs Sunday → Saturday and starts fresh every Sunday. Tick to cross off · ☆ to highlight priority · start with <b>!</b> to add as priority.</p>
+  <p class="hint">Week runs Sunday to Saturday and starts fresh every Sunday. Tick to cross off · tap ${icon('star')} to highlight priority · start with <b>!</b> to add as priority.</p>
   <div class="week-grid">
     ${[0, 1, 2, 3, 4, 5, 6].map(dayCard).join('')}
     <div class="card day-card anytime">
-      <h3>📌 Anytime this week<span class="spacer"></span><span class="small muted">${any.length ? `${any.filter((x) => x.done).length}/${any.length}` : ''}</span></h3>
+      <h3>${hi('pushpin')} Anytime this week<span class="spacer"></span><span class="small muted">${any.length ? `${any.filter((x) => x.done).length}/${any.length}` : ''}</span></h3>
       <div class="small muted" style="margin-bottom:6px">Things that can be done any day.</div>
       <ul class="items">${any.map((x) => taskItem(x)).join('')}</ul>
       <form class="quick-add" data-form="quickTask" data-id="any|${ws}"><input name="title" placeholder="Add task…" autocomplete="off" aria-label="Add anytime task"><button class="btn sm" aria-label="Add">+</button></form>
@@ -146,8 +146,8 @@ views.monthly = () => {
   const cal = monthGrid(ym, (s) => {
     const evs = eventsOn(s), tks = tasksDueOn(s).sort(sortTasks);
     const chips = [
-      ...evs.map((e) => `<span class="ev ${e.important ? 'imp' : ''}">${e.important ? '★' : ''}${e.time ? esc(e.time) + ' ' : ''}${esc(e.title)}</span>`),
-      ...tks.map((x) => `<span class="tk ${x.done ? 'done' : ''} ${x.important ? 'imp' : ''}">${x.important ? '★' : ''}${esc(x.title)}</span>`),
+      ...evs.map((e) => `<span class="ev ${e.important ? 'imp' : ''}">${e.time ? esc(e.time) + ' ' : ''}${esc(e.title)}</span>`),
+      ...tks.map((x) => `<span class="tk ${x.done ? 'done' : ''} ${x.important ? 'imp' : ''}">${esc(x.title)}</span>`),
     ];
     return { html: chips.slice(0, 4).join('') + (chips.length > 4 ? `<span class="more">+${chips.length - 4}</span>` : '') };
   }, { selected: sel });
@@ -170,7 +170,7 @@ views.monthly = () => {
   <div class="toolbar">${monthNav('calMonth')}<span class="grow"></span>
     <div class="progress-pill">${mDone}/${monthTasks.length} done ${bar(monthTasks.length ? (mDone / monthTasks.length) * 100 : 0, 'done')}</div></div>
   ${cal}
-  <p class="hint">Tap a day to select it, then add tasks or events. Set a 🔔 reminder on important ones.</p>
+  <p class="hint">Tap a day to select it, then add tasks or events. Set a reminder ${icon('bell')} on important ones.</p>
   <div class="grid wide" style="margin-top:12px">
     <div class="card">
       <h2>${esc(fmtDate(sel, { weekday: 'long', month: 'long', day: 'numeric' }))}<span class="spacer"></span>
@@ -178,12 +178,12 @@ views.monthly = () => {
       <form class="quick-add" data-form="quickTask" data-id="${sel}"><input name="title" placeholder="Quick add a task to this day…" autocomplete="off"><button class="btn primary sm">Add</button></form>
       ${rosterDay(sel).length ? `<div class="duty-line">${rosterDay(sel).map((x) => dutyChip(x)).join('')}</div>` : ''}
       <ul class="items">${dayEvs.map((e) => eventItem(e, sel)).join('')}${dayTasks.map((x) => taskItem(x)).join('')}</ul>
-      ${!dayEvs.length && !dayTasks.length ? empty('🌤️', 'Nothing planned for this day.') : ''}
+      ${!dayEvs.length && !dayTasks.length ? empty('cloud', 'Nothing planned for this day.') : ''}
     </div>
     <div class="card">
       <h2>All of ${esc(fmtMonth(ym))}</h2>
-      ${tabs('monthFilter', f, [['all', 'All'], ['todo', 'To do'], ['done', 'Done'], ['priority', '★ Priority']])}
-      <div style="margin-top:10px">${groups || empty('📭', 'Nothing here yet.')}</div>
+      ${tabs('monthFilter', f, [['all', 'All'], ['todo', 'To do'], ['done', 'Done'], ['priority', `${starIcon(true)} Priority`]])}
+      <div style="margin-top:10px">${groups || empty('inbox', 'Nothing here yet.')}</div>
     </div>
   </div>`;
 };
@@ -208,17 +208,17 @@ views.duties = () => {
   }).join('');
   return `
   <div class="toolbar">${weekNav('rosterWeek')}<span class="grow"></span>
-    <span class="progress-pill">⏱ ${round1(hrs)} h this week</span></div>
+    <span class="progress-pill">${icon('clock')} ${round1(hrs)} h this week</span></div>
   <div class="row" style="margin-bottom:12px">
-    <button class="btn sm" data-action="copyRoster">⧉ Copy last week</button>
-    <button class="btn sm" data-action="exportRoster">📲 Add week to phone calendar</button>
+    <button class="btn sm" data-action="copyRoster">${icon('copy')} Copy last week</button>
+    <button class="btn sm" data-action="exportRoster">${icon('calPlus')} Add week to phone calendar</button>
     <button class="btn sm ghost danger" data-action="clearRoster">Clear week</button>
   </div>
   <div class="card roster">${rows}</div>
   <div class="grid" style="margin-top:16px">
-    <div class="card"><h2>📝 Notes for this week</h2>
+    <div class="card"><h2>${hi('note')} Notes for this week</h2>
       <textarea rows="3" data-change="rosterNotes" data-id="${ws}" placeholder="Swaps, on-call, reminders…">${esc(r.notes || '')}</textarea></div>
-    <div class="card"><h2>Shift types<span class="spacer"></span><button class="btn sm" data-action="newDutyType">+ Type</button></h2>
+    <div class="card"><h2>${hi('badge')} Shift types<span class="spacer"></span><button class="btn sm" data-action="newDutyType">+ Type</button></h2>
       <ul class="items">${db.dutyTypes.map((x) => `<li class="item clickable" data-action="editDutyType" data-id="${x.id}" style="align-items:center">
         <span class="swatch" style="background:${esc(x.color)}"></span><div class="body"><div class="title">${esc(x.name)}</div>
         <div class="meta">${x.start ? `${esc(x.start)}–${esc(x.end)} · ${round1(dutyHours(x))} h` : 'No hours'}</div></div></li>`).join('')}</ul></div>
@@ -228,7 +228,7 @@ const rosterEnsure = (ws) => (db.roster[ws] ||= { days: {}, notes: '' });
 function dutyForm(ws, i, entry, preset = {}) {
   openForm({
     title: entry ? 'Edit duty' : `Add duty · ${DOW[i]}`,
-    values: { color: '#64748b', ...preset, ...entry },
+    values: { color: '#a43fc2', ...preset, ...entry },
     fields: [
       { name: 'title', label: 'Duty / shift', required: true, placeholder: 'Morning shift, On-call, Cleaning…' },
       { name: 'start', label: 'Start', type: 'time', half: true },
@@ -248,7 +248,7 @@ function dutyForm(ws, i, entry, preset = {}) {
 function dutyTypeForm(dt) {
   openForm({
     title: dt ? 'Edit shift type' : 'New shift type',
-    values: { color: '#0ea5e9', ...dt },
+    values: { color: '#c55bd6', ...dt },
     fields: [
       { name: 'name', label: 'Name', required: true, placeholder: 'Morning, Night, Off…' },
       { name: 'start', label: 'Start', type: 'time', half: true },

@@ -38,8 +38,8 @@ views.meals = () => {
   const prep = Object.values(agg).sort((a, b) => a.name.localeCompare(b.name));
   return `
   <div class="toolbar">${weekNav('mealWeek')}<span class="grow"></span>
-    <button class="btn sm" data-action="mealTargets">🎯 Daily targets</button>
-    <button class="btn sm" data-action="copyMeals">⧉ Copy last week</button></div>
+    <button class="btn sm" data-action="mealTargets">${icon('target')} Daily targets</button>
+    <button class="btn sm" data-action="copyMeals">${icon('copy')} Copy last week</button></div>
   <div class="stats">
     <div class="stat"><div class="label">Week total</div><div class="value">${Math.round(total.kcal).toLocaleString()}<small> kcal</small></div></div>
     <div class="stat"><div class="label">Avg / planned day</div><div class="value">${planned ? Math.round(total.kcal / planned) : 0}<small> kcal</small></div></div>
@@ -63,9 +63,9 @@ views.meals = () => {
       </div>`;
     }).join('')}
     <div class="card day-card">
-      <h3>🧾 Prep & shopping list</h3>
+      <h3>${hi('receipt')} Prep & shopping list</h3>
       ${prep.length ? `<ul class="items">${prep.map((x) => `<li class="item"><div class="body title">${esc(x.name)}</div><span class="small muted">${round1(x.amount)} ${esc(x.unit)}${x.times > 1 ? ` · ${x.times} meals` : ''}</span></li>`).join('')}</ul>
-        <button class="btn sm primary" style="margin-top:8px" data-action="prepToShop">🛒 Add all to Things to buy</button>` : empty('🥗', 'Plan meals to build your prep list.')}
+        <button class="btn sm primary" style="margin-top:8px" data-action="prepToShop">${icon('cart')} Add all to Things to buy</button>` : empty('leaf', 'Plan meals to build your prep list.')}
     </div>
   </div>`;
 };
@@ -79,7 +79,7 @@ function openMealEditor(ws, i, slot) {
     <label class="mf"><span>Unit</span><select class="m-unit" aria-label="Unit">${UNITS.map((u) => `<option ${u === it.unit ? 'selected' : ''}>${u}</option>`).join('')}</select></label>
     ${numIn('m-p', 'Protein', it.p)}${numIn('m-c', 'Carbs', it.c)}${numIn('m-f', 'Fat', it.f)}${numIn('m-k', 'kcal', it.kcal)}
     <span class="m-out small muted"></span>
-    <button type="button" class="icon-btn m-del" aria-label="Remove food">✕</button></div>`;
+    <button type="button" class="icon-btn m-del" aria-label="Remove food">${icon('x')}</button></div>`;
   const dlg = $('#modal');
   dlg.innerHTML = `<form class="form meal-form" novalidate>
     <h2>${DOW[i]} · ${slot}</h2>
@@ -172,17 +172,17 @@ const shopSort = (a, b) => (a.done - b.done) || (!!b.important - !!a.important);
 const shopItem = (l, i) => `<li class="item ${i.done ? 'done' : ''} ${i.important ? 'important' : ''}">
   <input type="checkbox" ${i.done ? 'checked' : ''} data-action="toggleListItem" data-id="${l.id}|${i.id}" aria-label="Bought">
   <div class="body title">${esc(i.text)}</div>
-  <div class="acts"><button class="icon-btn star ${i.important ? 'on' : ''}" data-action="starListItem" data-id="${l.id}|${i.id}" aria-label="Toggle priority">${i.important ? '★' : '☆'}</button>
-  <button class="icon-btn" data-action="delListItem" data-id="${l.id}|${i.id}" aria-label="Delete">✕</button></div></li>`;
+  <div class="acts"><button class="icon-btn star ${i.important ? 'on' : ''}" data-action="starListItem" data-id="${l.id}|${i.id}" aria-label="Toggle priority">${starIcon(i.important)}</button>
+  <button class="icon-btn" data-action="delListItem" data-id="${l.id}|${i.id}" aria-label="Delete">${icon('x')}</button></div></li>`;
 views.shopping = () => `
-  <p class="hint">Tick to cross off · ☆ to highlight priority · start with <b>!</b> to add as priority.</p>
+  <p class="hint">Tick to cross off · tap ${icon('star')} to highlight priority · start with <b>!</b> to add as priority.</p>
   <div class="grid">${db.lists.map((l) => {
     const done = l.items.filter((i) => i.done).length;
-    return `<div class="card"><h2>${esc(l.name)}<span class="small muted">${l.items.length - done} left</span><span class="spacer"></span>
-      <button class="icon-btn" data-action="editList" data-id="${l.id}" aria-label="Rename list">✎</button></h2>
+    return `<div class="card"><h2>${hi('cart')} ${esc(l.name)}<span class="small muted">${l.items.length - done} left</span><span class="spacer"></span>
+      <button class="icon-btn" data-action="editList" data-id="${l.id}" aria-label="Rename list">${icon('edit')}</button></h2>
       <form class="quick-add" data-form="addListItem" data-id="${l.id}"><input name="text" placeholder="Add item…" autocomplete="off"><button class="btn primary sm">Add</button></form>
       <ul class="items">${[...l.items].sort(shopSort).map((i) => shopItem(l, i)).join('')}</ul>
-      ${!l.items.length ? empty('🧺', 'Nothing to buy yet.') : ''}
+      ${!l.items.length ? empty('bag', 'Nothing to buy yet.') : ''}
       ${done ? `<div class="row end" style="margin-top:8px"><button class="btn sm ghost" data-action="clearListDone" data-id="${l.id}">Clear ${done} bought</button></div>` : ''}
     </div>`;
   }).join('')}</div>`;
@@ -214,7 +214,7 @@ forms.addListItem = (f) => {
 // ================= HEALTH =================
 const healthOf = (d) => db.health[d] || {};
 const setHealth = (d, patch) => { db.health[d] = { ...healthOf(d), ...patch }; };
-const HEALTH_TABS = [['daily', '📋 Daily'], ['body', '📏 Body'], ['cycle', '🌸 Cycle'], ['poop', '💩 Poop'], ['meds', '💊 Meds']];
+const HEALTH_TABS = [['daily', 'clipboard', 'Daily'], ['body', 'ruler', 'Body'], ['cycle', 'flower', 'Cycle'], ['poop', 'bowel', 'Poop'], ['meds', 'pill', 'Meds']].map(([k, ic, l]) => [k, `${icon(ic)} ${l}`]);
 
 views.health = () => `${tabs('healthTab', state.healthTab, HEALTH_TABS)}<div style="margin-top:14px">${healthTabs[state.healthTab]()}</div>`;
 TOP_ACTIONS.health = () => ({ body: ['newBody', '+ Measurement'], meds: ['newMed', '+ Medication'] }[state.healthTab]);
@@ -233,15 +233,15 @@ healthTabs.daily = () => {
       <div class="chart">${days.map((x, i) => `<div class="col" title="${esc(fmtDate(x))}: ${vals[i]} ${unit}"><i style="height:${(vals[i] / top) * 100}%;background:${color}"></i><small>${parseYmd(x).getDate()}</small></div>`).join('')}</div>`;
   };
   return `
-  <div class="toolbar"><div class="navgroup"><button class="btn" data-action="healthNav" data-id="-1" aria-label="Previous day">‹</button>
+  <div class="toolbar"><div class="navgroup"><button class="btn" data-action="healthNav" data-id="-1" aria-label="Previous day">${icon('chevL')}</button>
     <b class="nav-label">${d === today() ? 'Today' : esc(fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' }))}</b>
-    <button class="btn" data-action="healthNav" data-id="1" ${d >= today() ? 'disabled' : ''} aria-label="Next day">›</button></div></div>
+    <button class="btn" data-action="healthNav" data-id="1" ${d >= today() ? 'disabled' : ''} aria-label="Next day">${icon('chevR')}</button></div></div>
   <div class="grid">
-    <div class="card"><h2>😊 Mood</h2><div class="moods">${MOODS.map((e, i) => `<button class="mood-btn ${h.mood == i + 1 ? 'on' : ''}" data-action="setMood" data-id="${d}|${i + 1}">${e}</button>`).join('')}</div></div>
-    <div class="card"><h2>💧 Water<span class="spacer"></span><span class="small muted">${h.water || 0} / ${WATER_GOAL}</span></h2>
-      <div class="water">${Array.from({ length: Math.max(WATER_GOAL, h.water || 0) }, (_, i) => `<span class="${i < (h.water || 0) ? 'on' : ''}">💧</span>`).join('')}</div>
+    <div class="card"><h2>${hi('mood4')} Mood</h2><div class="moods">${MOODS.map((e, i) => `<button class="mood-btn ${h.mood == i + 1 ? 'on' : ''}" data-action="setMood" data-id="${d}|${i + 1}" title="${MOOD_LABELS[i]}" aria-label="${MOOD_LABELS[i]}">${e}</button>`).join('')}</div></div>
+    <div class="card"><h2>${hi('drop')} Water<span class="spacer"></span><span class="small muted">${h.water || 0} / ${WATER_GOAL}</span></h2>
+      <div class="water">${Array.from({ length: Math.max(WATER_GOAL, h.water || 0) }, (_, i) => `<span class="${i < (h.water || 0) ? 'on' : ''}">${icon('drop', 'fill')}</span>`).join('')}</div>
       <div class="row"><button class="btn sm" data-action="water" data-id="${d}|-1">− Glass</button><button class="btn sm primary" data-action="water" data-id="${d}|1">+ Glass</button></div></div>
-    <div class="card"><h2>📋 Daily log</h2>
+    <div class="card"><h2>${hi('clipboard')} Daily log</h2>
       <div class="form-grid">
         <label class="field"><span>Sleep (hours)</span><input type="number" step="0.5" min="0" max="24" inputmode="decimal" value="${esc(h.sleep ?? '')}" data-change="health" data-id="${d}|sleep"></label>
         <label class="field"><span>Exercise (min)</span><input type="number" step="5" min="0" inputmode="numeric" value="${esc(h.exercise ?? '')}" data-change="health" data-id="${d}|exercise"></label>
@@ -251,10 +251,10 @@ healthTabs.daily = () => {
   </div>
   <div class="section-title">Trends</div>
   <div class="grid">
-    <div class="card"><h3>😴 Sleep</h3>${chart('sleep', 8, '#6366f1', 'h')}</div>
-    <div class="card"><h3>🏃 Exercise</h3>${chart('exercise', 30, '#10b981', 'min')}</div>
-    <div class="card"><h3>💧 Water</h3>${chart('water', WATER_GOAL, '#0ea5e9', 'glasses')}</div>
-    <div class="card"><h3>😊 Mood</h3>${chart('mood', 5, '#f59e0b', '/5')}</div>
+    <div class="card"><h3>${hi('moon')} Sleep</h3>${chart('sleep', 8, 'var(--c1)', 'h')}</div>
+    <div class="card"><h3>${hi('activity')} Exercise</h3>${chart('exercise', 30, 'var(--c2)', 'min')}</div>
+    <div class="card"><h3>${hi('drop')} Water</h3>${chart('water', WATER_GOAL, 'var(--c3)', 'glasses')}</div>
+    <div class="card"><h3>${hi('mood4')} Mood</h3>${chart('mood', 5, 'var(--c4)', '/5')}</div>
   </div>`;
 };
 
@@ -269,7 +269,7 @@ healthTabs.body = () => {
   const whtr = H && Wa ? Wa / H : null;
   const series = (k) => list.filter((x) => x[k] != null && x[k] !== '').map((x) => ({ date: x.date, v: Number(x[k]) }));
   const bmiSeries = list.filter((x) => x.weight != null).map((x) => { const h = x.height || H; return h ? { date: x.date, v: round1(x.weight / (h / 100) ** 2) } : null; }).filter(Boolean);
-  if (!list.length) return `<div class="card">${empty('📏', 'Track height, weight and waist over time to see your trends.<br><br><button class="btn primary" data-action="newBody">+ Add measurement</button>')}</div>`;
+  if (!list.length) return `<div class="card">${empty('ruler', 'Track height, weight and waist over time to see your trends.<br><br><button class="btn primary" data-action="newBody">+ Add measurement</button>')}</div>`;
   const delta = W != null && firstW != null && W !== firstW ? ` <small class="${W < firstW ? 'good' : 'bad'}">${W > firstW ? '+' : ''}${round1(W - firstW)}</small>` : '';
   return `
   <div class="stats">
@@ -280,10 +280,10 @@ healthTabs.body = () => {
     <div class="stat"><div class="label">Waist ÷ height</div><div class="value">${whtr ? whtr.toFixed(2) : '–'}</div>${whtr ? `<div class="small ${whtr < 0.5 ? 'good' : 'warn'}">${whtr < 0.5 ? 'Healthy (< 0.5)' : 'Above 0.5'}</div>` : ''}</div>
   </div>
   <div class="grid">
-    <div class="card"><h3>⚖️ Weight (kg)</h3>${lineChart(series('weight'), '#6366f1', 'kg')}</div>
-    <div class="card"><h3>📐 Waist (cm)</h3>${lineChart(series('waist'), '#ec4899', 'cm')}</div>
-    <div class="card"><h3>📊 BMI</h3>${lineChart(bmiSeries, '#10b981', '')}</div>
-    <div class="card"><h3>📏 Height (cm)</h3>${lineChart(series('height'), '#0ea5e9', 'cm')}</div>
+    <div class="card"><h3>${hi('scale')} Weight (kg)</h3>${lineChart(series('weight'), '#a43fc2', 'kg')}</div>
+    <div class="card"><h3>${hi('tape')} Waist (cm)</h3>${lineChart(series('waist'), '#e6489b', 'cm')}</div>
+    <div class="card"><h3>${hi('chart')} BMI</h3>${lineChart(bmiSeries, '#7c4dcc', '')}</div>
+    <div class="card"><h3>${hi('ruler')} Height (cm)</h3>${lineChart(series('height'), '#c55bd6', 'cm')}</div>
   </div>
   <div class="card" style="margin-top:16px"><h2>History</h2>
     <div class="table-scroll"><table class="table"><thead><tr><th>Date</th><th>Height</th><th>Weight</th><th>Waist</th><th>Notes</th></tr></thead>
@@ -382,7 +382,7 @@ healthTabs.poop = () => {
     const e = db.poop[d];
     if (!e) return {};
     const n = num(e.count);
-    return { cls: n ? `bristol-${bristolGroup(+e.type)}` : 'poop-none', html: `<span class="poop">${n ? `💩${n > 1 ? '×' + n : ''}` : '–'}</span>`, title: e.type ? BRISTOL[e.type][1] : '' };
+    return { cls: n ? `bristol-${bristolGroup(+e.type)}` : 'poop-none', html: `<span class="poop">${n ? `${icon('bowel')}${n > 1 ? '×' + n : ''}` : '–'}</span>`, title: e.type ? BRISTOL[e.type][1] : '' };
   }, { action: 'poopDay', cls: 'cal-compact' });
   return `
   <div class="stats">
@@ -399,7 +399,7 @@ healthTabs.poop = () => {
 actions.poopDay = (d) => {
   const e = db.poop[d];
   openForm({
-    title: `💩 ${fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' })}`, values: e || { count: 1, type: '4' },
+    title: `Bowel movement · ${fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' })}`, values: e || { count: 1, type: '4' },
     fields: [
       { name: 'count', label: 'How many times', type: 'number', min: 0, step: '1', half: true },
       { name: 'type', label: 'Type (Bristol scale)', type: 'select', options: BRISTOL, half: true },
@@ -414,7 +414,7 @@ actions.poopDay = (d) => {
 healthTabs.meds = () => {
   const ym = state.healthMonth, days = monthDays(ym), t = today();
   const active = db.meds.filter((m) => m.active !== false), stopped = db.meds.filter((m) => m.active === false);
-  if (!db.meds.length) return `<div class="card">${empty('💊', 'Add your medications and tick them off each day.<br><br><button class="btn primary" data-action="newMed">+ Add medication</button>')}</div>`;
+  if (!db.meds.length) return `<div class="card">${empty('pill', 'Add your medications and tick them off each day.<br><br><button class="btn primary" data-action="newMed">+ Add medication</button>')}</div>`;
   const adherence = (m) => {
     const from = [m.created || days[0], days[0]].sort()[1], to = [t, days.at(-1)].sort()[0];
     if (from > to) return null;
@@ -428,7 +428,7 @@ healthTabs.meds = () => {
     <table class="meds"><thead><tr><th class="sticky">Medication</th>${days.map((d) => `<th class="${d === t ? 'today' : ''}">${parseYmd(d).getDate()}<small>${DOW_SHORT[parseYmd(d).getDay()][0]}</small></th>`).join('')}<th>%</th></tr></thead>
     <tbody>${active.map((m) => { const a = adherence(m); return `<tr><th class="sticky clickable" data-action="editMed" data-id="${m.id}">${esc(m.name)}<small>${esc(m.dose || '')}${m.times > 1 ? ` · ${m.times}×/day` : ''}</small></th>
       ${days.map((d) => { const n = m.log?.[d] || 0, full = n >= m.times, fut = d > t;
-        return `<td class="${d === t ? 'today' : ''}"><button class="mcell ${full ? 'full' : n ? 'part' : ''}" data-action="medDose" data-id="${m.id}|${d}" ${fut ? 'disabled' : ''} aria-label="${esc(m.name)} ${d}">${full ? '✓' : n ? `${n}/${m.times}` : ''}</button></td>`; }).join('')}
+        return `<td class="${d === t ? 'today' : ''}"><button class="mcell ${full ? 'full' : n ? 'part' : ''}" data-action="medDose" data-id="${m.id}|${d}" ${fut ? 'disabled' : ''} aria-label="${esc(m.name)} ${d}">${full ? icon('check') : n ? `${n}/${m.times}` : ''}</button></td>`; }).join('')}
       <td><b class="${a == null ? '' : a >= 90 ? 'good' : a >= 60 ? 'warn' : 'bad'}">${a == null ? '–' : a + '%'}</b></td></tr>`; }).join('')}</tbody></table></div>
     <p class="hint">Tap a day to mark it taken. For meds taken several times a day, tap again for each dose.</p></div>
   ${stopped.length ? `<div class="section-title">Stopped</div><div class="card"><ul class="items">${stopped.map((m) => `<li class="item clickable" data-action="editMed" data-id="${m.id}"><div class="body title">${esc(m.name)} <span class="muted small">${esc(m.dose || '')}</span></div></li>`).join('')}</ul></div>` : ''}`;

@@ -44,11 +44,11 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 // ---------- Constants ----------
 const AREAS = ['Personal', 'Work', 'Home', 'Health', 'Finance', 'Learning', 'Social', 'Family'];
-const AREA_COLORS = { Personal: '#6366f1', Work: '#0ea5e9', Home: '#f59e0b', Health: '#10b981', Finance: '#16a34a', Learning: '#a855f7', Social: '#ec4899', Family: '#ef4444' };
+const AREA_COLORS = { Personal: '#9b3fc4', Work: '#7c4dcc', Home: '#e6489b', Health: '#c2418a', Finance: '#8b3fd1', Learning: '#b05fd8', Social: '#f06aa8', Family: '#d6246e' };
 const REPEATS = [['none', 'Does not repeat'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['yearly', 'Yearly']];
 const REMINDS = [['', 'No reminder'], ['0', 'At the time'], ['10', '10 minutes before'], ['30', '30 minutes before'], ['60', '1 hour before'],
   ['120', '2 hours before'], ['1440', '1 day before'], ['2880', '2 days before'], ['10080', '1 week before']];
-const MOODS = ['😞', '😕', '😐', '🙂', '😄'];
+const MOODS = [1, 2, 3, 4, 5].map((i) => icon('mood' + i));
 const WATER_GOAL = 8;
 
 // ---------- Storage ----------
@@ -70,12 +70,16 @@ function migrate(d) {
   if (!out.lists.length) out.lists.push({ id: uid(), name: 'Things to buy', items: [] });
   if (!Array.isArray(out.dutyTypes)) {
     out.dutyTypes = [
-      { id: uid(), name: 'Morning', start: '07:00', end: '15:00', color: '#f59e0b' },
-      { id: uid(), name: 'Evening', start: '15:00', end: '23:00', color: '#6366f1' },
-      { id: uid(), name: 'Night', start: '23:00', end: '07:00', color: '#334155' },
-      { id: uid(), name: 'Day off', start: '', end: '', color: '#10b981' },
+      { id: uid(), name: 'Morning', start: '07:00', end: '15:00', color: '#e6489b' },
+      { id: uid(), name: 'Evening', start: '15:00', end: '23:00', color: '#9b3fc4' },
+      { id: uid(), name: 'Night', start: '23:00', end: '07:00', color: '#5b2a86' },
+      { id: uid(), name: 'Day off', start: '', end: '', color: '#f0a6ca' },
     ];
   }
+  // Re-colour shift types still using the old default colours
+  const OLD = { '#f59e0b': '#e6489b', '#6366f1': '#9b3fc4', '#334155': '#5b2a86', '#10b981': '#f0a6ca', '#64748b': '#a43fc2', '#0ea5e9': '#c55bd6' };
+  out.dutyTypes.forEach((t) => { if (OLD[t.color]) t.color = OLD[t.color]; });
+  Object.values(out.roster).forEach((w) => Object.values(w.days || {}).forEach((l) => l.forEach((x) => { if (OLD[x.color]) x.color = OLD[x.color]; })));
   return out;
 }
 function load() {
@@ -142,7 +146,7 @@ function openForm({ title, fields, values = {}, onSave, onDelete, extra = [], in
     ${fields.map((f) => fieldHtml(f, values[f.name])).join('')}
     <div class="row end form-actions">
       ${onDelete ? '<button type="button" class="btn danger" data-del>Delete</button>' : ''}
-      ${extra.map((x, i) => `<button type="button" class="btn" data-extra="${i}">${esc(x.label)}</button>`).join('')}
+      ${extra.map((x, i) => `<button type="button" class="btn" data-extra="${i}">${x.icon ? icon(x.icon) : ''}${esc(x.label)}</button>`).join('')}
       <span class="grow"></span>
       <button type="button" class="btn ghost" data-cancel>Cancel</button>
       <button type="submit" class="btn primary">Save</button>
@@ -173,8 +177,8 @@ function openForm({ title, fields, values = {}, onSave, onDelete, extra = [], in
 }
 
 // ---------- Shared renderers ----------
-const empty = (icon, text) => `<div class="empty"><span class="big">${icon}</span>${text}</div>`;
-const areaChip = (a) => (a ? `<span class="chip area" style="background:${AREA_COLORS[a] || '#64748b'}">${esc(a)}</span>` : '');
+const empty = (name, text) => `<div class="empty"><span class="empty-ic">${icon(name)}</span><div>${text}</div></div>`;
+const areaChip = (a) => (a ? `<span class="chip area" style="background:${AREA_COLORS[a] || '#9b3fc4'}">${esc(a)}</span>` : '');
 const tabs = (action, current, list) => `<div class="seg tabs">${list.map(([k, l]) => `<button class="${current === k ? 'on' : ''}" data-action="${action}" data-id="${k}">${l}</button>`).join('')}</div>`;
 const bar = (pct, cls = '') => `<div class="bar ${cls}"><span style="width:${Math.max(0, Math.min(100, pct))}%"></span></div>`;
 
@@ -195,11 +199,11 @@ function monthGrid(ym, cell, opts = {}) {
   }
   return `<div class="cal ${opts.cls || ''}">${DOW_SHORT.map((d) => `<div class="dow">${d}</div>`).join('')}${out.join('')}</div>`;
 }
-const monthNav = (key) => `<div class="navgroup"><button class="btn" data-action="monthNav" data-id="${key}|-1" aria-label="Previous month">‹</button>
-  <b class="nav-label">${esc(fmtMonth(state[key]))}</b><button class="btn" data-action="monthNav" data-id="${key}|1" aria-label="Next month">›</button></div>
+const monthNav = (key) => `<div class="navgroup"><button class="btn" data-action="monthNav" data-id="${key}|-1" aria-label="Previous month">${icon('chevL')}</button>
+  <b class="nav-label">${esc(fmtMonth(state[key]))}</b><button class="btn" data-action="monthNav" data-id="${key}|1" aria-label="Next month">${icon('chevR')}</button></div>
   ${state[key] !== today().slice(0, 7) ? `<button class="btn ghost" data-action="monthNav" data-id="${key}|0">This month</button>` : ''}`;
-const weekNav = (key) => `<div class="navgroup"><button class="btn" data-action="weekNav" data-id="${key}|-1" aria-label="Previous week">‹</button>
-  <b class="nav-label">${esc(fmtWeek(state[key]))}</b><button class="btn" data-action="weekNav" data-id="${key}|1" aria-label="Next week">›</button></div>
+const weekNav = (key) => `<div class="navgroup"><button class="btn" data-action="weekNav" data-id="${key}|-1" aria-label="Previous week">${icon('chevL')}</button>
+  <b class="nav-label">${esc(fmtWeek(state[key]))}</b><button class="btn" data-action="weekNav" data-id="${key}|1" aria-label="Next week">${icon('chevR')}</button></div>
   ${state[key] !== weekStart() ? `<button class="btn ghost" data-action="weekNav" data-id="${key}|0">This week</button>` : ''}`;
 actions.monthNav = (id) => {
   const [k, n] = split(id);
@@ -262,11 +266,11 @@ const hasReminder = (x) => x.remind !== '' && x.remind != null;
 function taskItem(t, o = {}) {
   const over = !t.done && t.due && t.due < today();
   const meta = [
-    o.showDate && t.due ? `<span class="${over ? 'overdue' : ''}">📅 ${esc(relDay(t.due))}</span>` : over ? `<span class="overdue">${esc(relDay(t.due))}</span>` : '',
-    t.time ? `<span>🕑 ${esc(fmtTime(t.time))}</span>` : '',
-    hasReminder(t) ? '<span title="Reminder set">🔔</span>' : '',
-    t.repeat && t.repeat !== 'none' ? `<span>🔁 ${esc(t.repeat)}</span>` : '',
-    t.notes ? '<span title="Has notes">📝</span>' : '',
+    o.showDate && t.due ? `<span class="${over ? 'overdue' : ''}">${icon('calendar')} ${esc(relDay(t.due))}</span>` : over ? `<span class="overdue">${esc(relDay(t.due))}</span>` : '',
+    t.time ? `<span>${icon('clock')} ${esc(fmtTime(t.time))}</span>` : '',
+    hasReminder(t) ? `<span title="Reminder set">${icon('bell')}</span>` : '',
+    t.repeat && t.repeat !== 'none' ? `<span>${icon('repeat')} ${esc(t.repeat)}</span>` : '',
+    t.notes ? `<span title="Has notes">${icon('note')}</span>` : '',
   ].join('');
   return `<li class="item ${t.done ? 'done' : ''} ${t.important ? 'important' : ''}">
     <input type="checkbox" ${t.done ? 'checked' : ''} data-action="toggleTask" data-id="${t.id}" aria-label="Mark done">
@@ -274,16 +278,16 @@ function taskItem(t, o = {}) {
       <div class="title">${esc(t.title)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}
     </div>
     <div class="acts">
-      <button class="icon-btn star ${t.important ? 'on' : ''}" data-action="toggleStar" data-id="${t.id}" title="Priority" aria-label="Toggle priority">${t.important ? '★' : '☆'}</button>
-      <button class="icon-btn" data-action="delTask" data-id="${t.id}" aria-label="Delete">✕</button>
+      <button class="icon-btn star ${t.important ? 'on' : ''}" data-action="toggleStar" data-id="${t.id}" title="Priority" aria-label="Toggle priority">${starIcon(t.important)}</button>
+      <button class="icon-btn" data-action="delTask" data-id="${t.id}" aria-label="Delete">${icon('x')}</button>
     </div></li>`;
 }
 function eventItem(e, date) {
   return `<li class="item event ${e.important ? 'important' : ''} clickable" data-action="editEvent" data-id="${e.id}">
     <div class="ev-time small"><b>${e.time ? esc(fmtTime(e.time)) : 'All day'}</b>${e.end ? `<div class="muted">${esc(fmtTime(e.end))}</div>` : ''}</div>
-    <div class="body"><div class="title">${e.important ? '★ ' : ''}${esc(e.title)}</div>
-      <div class="meta"><span class="chip ev-chip">Event</span>${e.location ? `<span>📍 ${esc(e.location)}</span>` : ''}${hasReminder(e) ? '<span>🔔</span>' : ''}
-      ${e.repeat && e.repeat !== 'none' ? `<span>🔁 ${esc(e.repeat)}</span>` : ''}${date && date !== today() ? `<span>${esc(relDay(date))}</span>` : ''}</div>
+    <div class="body"><div class="title">${e.important ? starIcon(true) + ' ' : ''}${esc(e.title)}</div>
+      <div class="meta"><span class="chip ev-chip">Event</span>${e.location ? `<span>${icon('pin')} ${esc(e.location)}</span>` : ''}${hasReminder(e) ? `<span>${icon('bell')}</span>` : ''}
+      ${e.repeat && e.repeat !== 'none' ? `<span>${icon('repeat')} ${esc(e.repeat)}</span>` : ''}${date && date !== today() ? `<span>${esc(relDay(date))}</span>` : ''}</div>
     </div></li>`;
 }
 
@@ -297,7 +301,7 @@ function taskForm(task, preset = {}) {
       { name: 'time', label: 'Time', type: 'time', half: true },
       { name: 'remind', label: 'Reminder', type: 'select', options: REMINDS, half: true },
       { name: 'repeat', label: 'Repeat', type: 'select', options: REPEATS, half: true },
-      { name: 'important', label: '⭐ Priority — highlight this task', type: 'checkbox' },
+      { name: 'important', label: 'Priority — highlight this task', type: 'checkbox' },
       { name: 'notes', label: 'Notes', type: 'textarea', rows: 3 },
     ],
     onSave: (v) => {
@@ -307,7 +311,7 @@ function taskForm(task, preset = {}) {
       else db.tasks.push({ id: uid(), done: false, created: Date.now(), ...v, week });
     },
     onDelete: task ? () => remove('tasks', task.id) : null,
-    extra: [{ label: '📲 Add to phone calendar', onClick: (v) => (v.due ? downloadIcs([{ item: { ...task, ...v, id: task?.id || uid() }, date: v.due }]) : toast('Pick a day first')) }],
+    extra: [{ label: 'Add to phone calendar', icon: 'calPlus', onClick: (v) => (v.due ? downloadIcs([{ item: { ...task, ...v, id: task?.id || uid() }, date: v.due }]) : toast('Pick a day first')) }],
   });
 }
 function eventForm(ev, preset = {}) {
@@ -322,7 +326,7 @@ function eventForm(ev, preset = {}) {
       { name: 'end', label: 'End time', type: 'time', half: true },
       { name: 'remind', label: 'Reminder', type: 'select', options: REMINDS, half: true },
       { name: 'location', label: 'Location', half: true },
-      { name: 'important', label: '⭐ Priority — highlight this event', type: 'checkbox' },
+      { name: 'important', label: 'Priority — highlight this event', type: 'checkbox' },
       { name: 'notes', label: 'Notes', type: 'textarea', rows: 3 },
     ],
     onSave: (v) => {
@@ -331,7 +335,7 @@ function eventForm(ev, preset = {}) {
       if (ev) Object.assign(ev, v); else db.events.push({ id: uid(), ...v });
     },
     onDelete: ev ? () => remove('events', ev.id) : null,
-    extra: [{ label: '📲 Add to phone calendar', onClick: (v) => (v.date ? downloadIcs([{ item: { ...ev, ...v, id: ev?.id || uid() }, date: v.date }]) : toast('Pick a date first')) }],
+    extra: [{ label: 'Add to phone calendar', icon: 'calPlus', onClick: (v) => (v.date ? downloadIcs([{ item: { ...ev, ...v, id: ev?.id || uid() }, date: v.date }]) : toast('Pick a date first')) }],
   });
 }
 
@@ -354,7 +358,7 @@ Object.assign(actions, {
       const n = { ...t, id: uid(), done: false, completed: null, spawned: false, created: Date.now() };
       if (t.due) { n.due = nextDate(t.due, t.repeat); n.week = weekStart(n.due); } else n.week = addDays(taskWeek(t), 7);
       db.tasks.push(n);
-      toast(`🔁 Next one added for ${n.due ? relDay(n.due) : 'next week'}`);
+      toast(`Next one added for ${n.due ? relDay(n.due) : 'next week'}`);
     }
     commit();
   },
@@ -398,7 +402,7 @@ function checkReminders() {
     if (at == null || at > now || now - at > 12 * 3600e3 || db.fired[key]) continue;
     db.fired[key] = now; fired = true;
     const when = `${relDay(date)}${item.time ? ' at ' + fmtTime(item.time) : ''}`;
-    notify(`${item.important ? '⭐ ' : ''}${item.title}`, `${kind} · ${when}${item.location ? ' · ' + item.location : ''}`);
+    notify(`${item.important ? 'Priority: ' : ''}${item.title}`, `${kind} · ${when}${item.location ? ' · ' + item.location : ''}`);
   }
   if (fired) {
     for (const [k, v] of Object.entries(db.fired)) if (now - v > 40 * 86400e3) delete db.fired[k];
@@ -406,7 +410,7 @@ function checkReminders() {
   }
 }
 function notify(title, body) {
-  toast(`🔔 ${title} — ${body}`, null, null, 10000);
+  toast(`Reminder: ${title} — ${body}`, null, null, 10000);
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const opts = { body, icon: 'icon.svg', badge: 'icon.svg', tag: title };
   const fallback = () => { try { new Notification(title, opts); } catch { /* unsupported */ } };
@@ -429,7 +433,7 @@ function vevent(item, date) {
     L.push(`DTSTART:${d}T${st}00`);
     L.push(item.end && item.end > (item.time || '') ? `DTEND:${d}T${item.end.replace(':', '')}00` : 'DURATION:PT30M');
   } else L.push(`DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${addDays(date, 1).replace(/-/g, '')}`);
-  L.push(`SUMMARY:${icsEsc((item.important ? '⭐ ' : '') + (item.title || 'Event'))}`);
+  L.push(`SUMMARY:${icsEsc((item.important ? 'Priority: ' : '') + (item.title || 'Event'))}`);
   if (item.location) L.push(`LOCATION:${icsEsc(item.location)}`);
   const desc = [item.ref && `Ref: ${item.ref}`, item.notes].filter(Boolean).join('\n');
   if (desc) L.push(`DESCRIPTION:${icsEsc(desc)}`);
