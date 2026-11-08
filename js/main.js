@@ -2,11 +2,11 @@
 /* Navigation, rendering and global event wiring. Loaded last. */
 
 const NAV = [
-  ['Planner', [['today', 'Today', '☀️'], ['weekly', 'Weekly to-do', '🗓️'], ['monthly', 'Monthly to-do', '📅'], ['duties', 'Duty roster', '🧑‍💼']]],
-  ['Home & health', [['meals', 'Meal prep', '🍱'], ['shopping', 'Things to buy', '🛒'], ['health', 'Health', '❤️']]],
-  ['Money & travel', [['finances', 'Finances', '💰'], ['travel', 'Travel plans', '✈️']]],
-  ['Personal', [['journal', 'Journal', '📔'], ['habits', 'Habits', '🔁'], ['goals', 'Goals', '🎯'], ['notes', 'Notes', '📝']]],
-  ['', [['settings', 'Settings', '⚙️']]],
+  ['Planner', [['today', 'Today', 'sun'], ['weekly', 'Weekly to-do', 'calWeek'], ['monthly', 'Monthly to-do', 'calendar'], ['duties', 'Duty roster', 'badge']]],
+  ['Home & health', [['meals', 'Meal prep', 'bowl'], ['shopping', 'Shopping list', 'cart'], ['health', 'Health', 'heart']]],
+  ['Money & travel', [['finances', 'Finances', 'wallet'], ['travel', 'Travel plans', 'plane']]],
+  ['Personal', [['journal', 'Journal', 'book'], ['study', 'Study plan', 'grad'], ['habits', 'Habits', 'repeat'], ['goals', 'Goals', 'target'], ['notes', 'Notes', 'note']]],
+  ['', [['settings', 'Settings', 'sliders']]],
 ];
 const VIEWS = NAV.flatMap((g) => g[1]);
 const ALIASES = { tasks: 'weekly', calendar: 'monthly', money: 'finances', lists: 'shopping' };
@@ -24,11 +24,12 @@ function render() {
   document.documentElement.dataset.theme = db.settings.theme === 'auto' ? '' : db.settings.theme;
   const t = today();
   const badges = {
-    weekly: db.tasks.filter((x) => !x.done && x.due && x.due <= t).length,
+    weekly: db.tasks.filter((x) => isWeekly(x) && !x.done && x.due && x.due <= t).length,
+    monthly: db.tasks.filter((x) => isMonthly(x) && !x.done && x.due && x.due <= t).length,
     shopping: db.lists.reduce((s, l) => s + l.items.filter((i) => !i.done && i.important).length, 0),
   };
   $('#nav').innerHTML = NAV.map(([group, items]) => `${group ? `<div class="nav-group">${group}</div>` : '<div class="nav-sep"></div>'}
-    ${items.map(([k, label, ico]) => `<a href="#/${k}" class="${k === v ? 'active' : ''}"><span class="ico">${ico}</span>${label}${badges[k] ? `<span class="badge">${badges[k]}</span>` : ''}</a>`).join('')}`).join('');
+    ${items.map(([k, label, ico]) => `<a href="#/${k}" class="${k === v ? 'active' : ''}"><span class="ico">${icon(ico)}</span>${label}${badges[k] ? `<span class="badge">${badges[k]}</span>` : ''}</a>`).join('')}`).join('');
   const meta = VIEWS.find((x) => x[0] === v);
   const title = v === 'travel' && state.tripId && find('trips', state.tripId) ? find('trips', state.tripId).name : meta[1];
   $('#page-title').textContent = title;
@@ -45,6 +46,7 @@ function render() {
     else { const tc = sc.querySelector('th.today'); if (tc) sc.scrollLeft = Math.max(0, tc.offsetLeft - sc.clientWidth / 2); }
   }
 
+  afterRender.forEach((fn) => fn(v));
   if (focusId) {
     const el = document.getElementById(focusId);
     if (el) { el.focus(); try { el.setSelectionRange(selStart, selStart); } catch { /* not a text input */ } }
@@ -100,6 +102,8 @@ function rollover() {
   if (state.week === prevWeek) state.week = weekStart();
   if (state.mealWeek === prevWeek) state.mealWeek = weekStart();
   if (state.rosterWeek === prevWeek) state.rosterWeek = weekStart();
+  if (state.studyWeek === prevWeek) state.studyWeek = weekStart();
+  state.poopDay = lastDay; state.medDay = lastDay;
   render();
 }
 setInterval(() => { checkReminders(); if (today() !== lastDay) rollover(); }, 30000);

@@ -25,7 +25,7 @@ function loanTotals() {
   return { owe, owed, activeCount };
 }
 
-const FIN_TABS = [['savings', '🏦 Savings'], ['loans', '🤝 Loans'], ['spending', '🧾 Spending']];
+const FIN_TABS = [['savings', 'bank', 'Savings'], ['loans', 'swap', 'Loans'], ['spending', 'receipt', 'Spending']].map(([k, ic, l]) => [k, `${icon(ic)} ${l}`]);
 views.finances = () => `${tabs('financeTab', state.financeTab, FIN_TABS)}<div style="margin-top:14px">${finTabs[state.financeTab]()}</div>`;
 TOP_ACTIONS.finances = () => ({ savings: ['newAccount', '+ Account'], loans: ['newLoan', '+ Loan'], spending: ['newTx', '+ Expense', 'expense'] }[state.financeTab]);
 actions.financeTab = (k) => { state.financeTab = k; render(); };
@@ -53,8 +53,8 @@ finTabs.savings = () => {
     const h = (a.history || []).slice().sort((x, y) => x.date.localeCompare(y.date));
     const prev = h.length > 1 ? Number(h.at(-2).balance) : null;
     const diff = prev != null ? Number(a.balance) - prev : 0;
-    return `<div class="card"><h3>${esc(a.name)}<span class="chip">${esc(a.currency)}</span><span class="spacer"></span>
-        <button class="icon-btn" data-action="editAccount" data-id="${a.id}" aria-label="Edit account">✎</button></h3>
+    return `<div class="card"><h3>${hi('bank')} ${esc(a.name)}<span class="chip">${esc(a.currency)}</span><span class="spacer"></span>
+        <button class="icon-btn" data-action="editAccount" data-id="${a.id}" aria-label="Edit account">${icon('edit')}</button></h3>
       <div class="big-num">${fmtCur(a.balance, a.currency)}</div>
       <div class="small muted">${a.currency === 'USD' ? '≈ ' + fmtCur(a.balance * r, 'MVR') : '≈ ' + fmtCur(a.balance / r, 'USD')}
         ${diff ? ` · <span class="${diff > 0 ? 'good' : 'bad'}">${diff > 0 ? '+' : ''}${fmtCur(diff, a.currency)}</span> since last update` : ''}</div>
@@ -62,8 +62,8 @@ finTabs.savings = () => {
       <div class="row" style="margin-top:10px"><button class="btn sm primary" data-action="updateBalance" data-id="${a.id}">Update balance</button></div>
     </div>`;
   }).join('')}</div>
-  <div class="card" style="margin-top:16px"><h3>📈 Total savings over time (MVR)</h3>${lineChart(trend, '#16a34a', 'MVR')}</div>`
-    : `<div class="card">${empty('🏦', 'Add your savings accounts — bank accounts, cash, savings pots — in MVR or USD.<br><br><button class="btn primary" data-action="newAccount">+ Add account</button>')}</div>`}`;
+  <div class="card" style="margin-top:16px"><h3>${hi('trend')} Total savings over time (MVR)</h3>${lineChart(trend, '#a43fc2', 'MVR')}</div>`
+    : `<div class="card">${empty('bank', 'Add your savings accounts — bank accounts, cash, savings pots — in MVR or USD.<br><br><button class="btn primary" data-action="newAccount">+ Add account</button>')}</div>`}`;
 };
 function accountForm(a) {
   openForm({
@@ -116,17 +116,17 @@ finTabs.loans = () => {
     const paid = loanPaid(l), left = loanLeft(l), pct = l.amount ? (paid / l.amount) * 100 : 0;
     const over = left > 0.004 && l.due && l.due < t;
     return `<div class="card loan ${l.direction}">
-      <h3>${l.direction === 'taken' ? '⬇️' : '⬆️'} ${esc(l.person)}<span class="spacer"></span><button class="icon-btn" data-action="editLoan" data-id="${l.id}" aria-label="Edit loan">✎</button></h3>
+      <h3>${hi(l.direction === 'taken' ? 'arrowDownLeft' : 'arrowUpRight')} ${esc(l.person)}<span class="spacer"></span><button class="icon-btn" data-action="editLoan" data-id="${l.id}" aria-label="Edit loan">${icon('edit')}</button></h3>
       <div class="kv"><span>${l.direction === 'taken' ? 'Borrowed' : 'Lent'}</span><b>${fmtCur(l.amount, l.currency)}</b></div>
       <div class="kv"><span>${l.direction === 'taken' ? 'Repaid' : 'Received back'}</span><b>${fmtCur(paid, l.currency)}</b></div>
-      <div class="kv"><span>Remaining</span><b class="${left > 0.004 ? (l.direction === 'taken' ? 'bad' : 'warn') : 'good'}">${left > 0.004 ? fmtCur(left, l.currency) : 'Settled ✓'}</b></div>
+      <div class="kv"><span>Remaining</span><b class="${left > 0.004 ? (l.direction === 'taken' ? 'bad' : 'warn') : 'good'}">${left > 0.004 ? fmtCur(left, l.currency) : `Settled ${icon('check')}`}</b></div>
       ${bar(pct, left <= 0.004 ? 'done' : '')}
       <div class="meta small muted" style="margin-top:6px">${l.date ? `<span>Since ${esc(fmtDate(l.date, { day: 'numeric', month: 'short', year: 'numeric' }))}</span>` : ''}
         ${l.due ? `<span class="${over ? 'overdue' : ''}">· Due ${esc(fmtDate(l.due, { day: 'numeric', month: 'short', year: 'numeric' }))}${over ? ' (overdue)' : ''}</span>` : ''}</div>
       ${l.notes ? `<div class="small muted">${esc(l.notes)}</div>` : ''}
       ${(l.payments || []).length ? `<details class="payments"><summary class="small">${plural(l.payments.length, 'payment')}</summary><ul class="items">${l.payments.slice().sort((a, b) => b.date.localeCompare(a.date)).map((p) => `<li class="item small">
         <span class="grow">${esc(fmtDate(p.date))}${p.note ? ' · ' + esc(p.note) : ''}</span><b>${fmtCur(p.amount, l.currency)}</b>
-        <button class="icon-btn" data-action="delPayment" data-id="${l.id}|${p.id}" aria-label="Delete payment">✕</button></li>`).join('')}</ul></details>` : ''}
+        <button class="icon-btn" data-action="delPayment" data-id="${l.id}|${p.id}" aria-label="Delete payment">${icon('x')}</button></li>`).join('')}</ul></details>` : ''}
       ${left > 0.004 ? `<div class="row" style="margin-top:8px"><button class="btn sm primary" data-action="addPayment" data-id="${l.id}">+ ${l.direction === 'taken' ? 'Repayment' : 'Payment received'}</button></div>` : ''}
     </div>`;
   };
@@ -138,11 +138,11 @@ finTabs.loans = () => {
     <div class="stat"><div class="label">Owed to me</div><div class="value good small-val">${curList(lt.owed)}</div></div>
     <div class="stat"><div class="label">Active loans</div><div class="value">${lt.activeCount}</div></div>
   </div>
-  <div class="section-title">⬇️ Loans taken — money I owe</div>
-  ${taken.length ? `<div class="grid">${taken.map(card).join('')}</div>` : '<div class="card">' + empty('🙌', 'You don’t owe anyone.') + '</div>'}
-  <div class="section-title">⬆️ Loans given — money owed to me</div>
-  ${given.length ? `<div class="grid">${given.map(card).join('')}</div>` : '<div class="card">' + empty('🤝', 'Nobody owes you money.') + '</div>'}
-  ${settled.length ? `<details class="section"><summary class="section-title">✓ Settled (${settled.length})</summary><div class="grid">${settled.map(card).join('')}</div></details>` : ''}`;
+  <div class="section-title">${icon('arrowDownLeft')} Loans taken — money I owe</div>
+  ${taken.length ? `<div class="grid">${taken.map(card).join('')}</div>` : '<div class="card">' + empty('checkCircle', 'You don’t owe anyone.') + '</div>'}
+  <div class="section-title">${icon('arrowUpRight')} Loans given — money owed to me</div>
+  ${given.length ? `<div class="grid">${given.map(card).join('')}</div>` : '<div class="card">' + empty('swap', 'Nobody owes you money.') + '</div>'}
+  ${settled.length ? `<details class="section"><summary class="section-title">${icon('check')} Settled (${settled.length})</summary><div class="grid">${settled.map(card).join('')}</div></details>` : ''}`;
 };
 function loanForm(l) {
   openForm({
@@ -169,7 +169,7 @@ Object.assign(actions, {
       title: `${l.direction === 'taken' ? 'Repayment to' : 'Payment from'} ${l.person}`, values: { amount: round1(loanLeft(l)), date: today() },
       fields: [{ name: 'amount', label: `Amount (${l.currency})`, type: 'number', step: '0.01', min: 0, required: true, half: true },
         { name: 'date', label: 'Date', type: 'date', half: true }, { name: 'note', label: 'Note' }],
-      onSave: (v) => { (l.payments ||= []).push({ id: uid(), ...v, date: v.date || today() }); if (loanLeft(l) <= 0.004) toast('🎉 Loan settled!'); },
+      onSave: (v) => { (l.payments ||= []).push({ id: uid(), ...v, date: v.date || today() }); if (loanLeft(l) <= 0.004) toast('Loan settled!'); },
     });
   },
   delPayment: (id) => { const [lid, pid] = split(id); const l = find('loans', lid); if (confirm('Delete this payment?')) { l.payments = l.payments.filter((p) => p.id !== pid); commit(); } },
@@ -200,25 +200,25 @@ finTabs.spending = () => {
     <div class="stat"><div class="label">Savings rate</div><div class="value">${m.income ? Math.round((m.net / m.income) * 100) : 0}%</div></div>
   </div>
   <div class="grid wide">
-    <div class="card"><h2>Spending by category${budgetTotal ? `<span class="spacer"></span><span class="small muted">Budget ${money(budgetTotal)}</span>` : ''}</h2>
+    <div class="card"><h2>${hi('receipt')} Spending by category${budgetTotal ? `<span class="spacer"></span><span class="small muted">Budget ${money(budgetTotal)}</span>` : ''}</h2>
       ${cats.length ? cats.map((c) => {
         const spent = m.byCat[c] || 0, b = Number(db.budgets[c] || 0);
         const pct = b ? (spent / b) * 100 : m.expense ? (spent / m.expense) * 100 : 0;
         return `<div style="margin-bottom:10px"><div class="row small"><span class="grow">${esc(c)}</span><b>${money(spent)}</b>${b ? `<span class="muted">/ ${money(b)}</span>` : ''}</div>${bar(pct, b && spent > b ? 'over' : '')}</div>`;
-      }).join('') : empty('🧾', 'No spending recorded this month.')}
+      }).join('') : empty('receipt', 'No spending recorded this month.')}
     </div>
-    <div class="card"><h2>6-month trend</h2>
+    <div class="card"><h2>${hi('chart')} 6-month trend</h2>
       <div class="chart" style="height:150px">${trend.map(([k, x]) => `<div class="col" title="${esc(fmtMonth(k))}: +${money(x.income)} / −${money(x.expense)}">
         <div class="pair"><i style="height:${(x.income / maxT) * 100}%;background:var(--good)"></i><i style="height:${(x.expense / maxT) * 100}%;background:var(--bad)"></i></div>
         <small>${esc(parseYmd(k + '-01').toLocaleDateString(undefined, { month: 'short' }))}</small></div>`).join('')}</div>
-      <div class="small muted row"><span><span style="color:var(--good)">■</span> Income</span><span><span style="color:var(--bad)">■</span> Expenses</span></div>
+      <div class="small muted row"><span><i class="sw" style="background:var(--good)"></i> Income</span><span><i class="sw" style="background:var(--bad)"></i> Expenses</span></div>
     </div>
   </div>
-  <div class="card" style="margin-top:16px"><h2>Transactions<span class="spacer"></span>
+  <div class="card" style="margin-top:16px"><h2>${hi('cash')} Transactions<span class="spacer"></span>
     <button class="btn sm" data-action="newTx" data-id="expense">+ Expense</button><button class="btn sm" data-action="newTx" data-id="income">+ Income</button></h2>
     ${tx.length ? `<ul class="items">${tx.map((x) => `<li class="item clickable" data-action="editTx" data-id="${x.id}" style="align-items:center">
       <div class="body"><div class="title">${esc(x.note || x.category)}</div><div class="meta"><span>${esc(fmtDate(x.date))}</span><span class="chip">${esc(x.category)}</span></div></div>
-      <b class="${x.type === 'income' ? 'good' : 'bad'}">${x.type === 'income' ? '+' : '−'}${money(x.amount)}</b></li>`).join('')}</ul>` : empty('💸', 'No transactions this month.')}
+      <b class="${x.type === 'income' ? 'good' : 'bad'}">${x.type === 'income' ? '+' : '−'}${money(x.amount)}</b></li>`).join('')}</ul>` : empty('cash', 'No transactions this month.')}
   </div>`;
 };
 function txForm(tx, type = 'expense') {
