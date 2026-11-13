@@ -58,7 +58,7 @@ const defaults = () => ({
   tasks: [], events: [], habits: [], goals: [], transactions: [], budgets: {}, health: {}, journal: [], notes: [], lists: [],
   meals: {}, foods: [], body: [], cycle: {}, poop: {}, meds: [], accounts: [], loans: [], roster: {}, dutyTypes: null, trips: [], fired: {},
   study: { topics: [], goals: {}, hours: {}, target: 10 },
-  settings: { name: '', currency: 'MVR', theme: 'auto', usdRate: 15.42, targets: { kcal: 2000, p: 120, c: 200, f: 65 } },
+  settings: { name: '', rosterName: 'Dr Maushan', currency: 'MVR', theme: 'auto', usdRate: 15.42, targets: { kcal: 2000, p: 120, c: 200, f: 65 } },
 });
 function migrate(d) {
   const base = defaults();

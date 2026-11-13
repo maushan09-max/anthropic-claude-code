@@ -192,6 +192,7 @@ views.settings = () => {
         <label class="field"><span>1 USD in MVR</span><input type="number" step="0.01" value="${esc(s.usdRate)}" data-change="setting" data-id="usdRate"></label>
         <label class="field"><span>Theme</span><select data-change="setting" data-id="theme">${[['auto', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([v, l]) => `<option value="${v}" ${s.theme === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       </div></div>
+    ${rosterAiSettingsCard()}
     <div class="card"><h2>${hi('bell')} Reminders</h2>
       <p class="small muted">LifeOS shows reminders while it is open (or open in a background tab). For reminders that always reach you, even when the app is closed,
         use <b>Add to phone calendar</b> on any task or event — your phone's calendar app will alert you.</p>

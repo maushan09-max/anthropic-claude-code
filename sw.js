@@ -1,6 +1,6 @@
 // Offline support: network-first, falling back to the cached copy.
-const CACHE = 'lifeos-v4';
-const ASSETS = ['./', './index.html', './styles.css', './js/icons.js', './js/core.js', './js/planner.js', './js/life.js', './js/money.js', './js/travel.js', './js/more.js', './js/study.js', './js/main.js', './manifest.json', './icon.svg'];
+const CACHE = 'lifeos-v5';
+const ASSETS = ['./', './index.html', './styles.css', './js/icons.js', './js/core.js', './js/planner.js', './js/roster-ai.js', './js/vendor/anthropic-sdk.mjs', './js/life.js', './js/money.js', './js/travel.js', './js/more.js', './js/study.js', './js/main.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

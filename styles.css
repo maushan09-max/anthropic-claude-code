@@ -551,3 +551,23 @@ dialog:has(.viewer) { width: min(1100px, calc(100vw - 16px)); }
   .oncall input { max-width: none; flex: 1; }
   .oncall span { white-space: nowrap; }
 }
+
+/* ===== Roster reading ===== */
+.busy { display: flex; gap: 14px; align-items: center; padding: 22px; }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--accent-soft); border-top-color: var(--accent-2); animation: spin .8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+dialog:has(.roster-review) { width: min(760px, calc(100vw - 16px)); }
+.roster-review h2 { display: flex; align-items: center; gap: 8px; }
+.rv-day { width: 100%; border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px 10px; margin: 0; display: grid; gap: 6px; }
+.rv-day legend { padding: 0 6px; }
+.rv-duties { display: grid; gap: 6px; }
+.rv-duty { display: grid; grid-template-columns: 1.3fr .8fr .8fr 1.6fr auto; gap: 6px; align-items: center; }
+.rv-duty > * { min-width: 0; }
+.rv-day .rv-add { justify-self: start; }
+@media (max-width: 560px) { .rv-duty { grid-template-columns: 1fr 1fr; } .rv-duty .rv-label, .rv-duty .rv-with { grid-column: 1 / -1; } .rv-duty .rv-del { grid-column: 2; justify-self: end; } }
+.rv-duty { grid-template-columns: minmax(110px, 1.1fr) minmax(128px, 1fr) minmax(128px, 1fr) minmax(140px, 1.5fr) auto; position: relative; }
+@media (max-width: 560px) {
+  .rv-duty { grid-template-columns: 1fr 1fr; }
+  .rv-duty .rv-label { grid-column: 1 / -1; padding-right: 40px; }
+  .rv-duty .rv-del { position: absolute; top: 4px; right: 2px; }
+}
