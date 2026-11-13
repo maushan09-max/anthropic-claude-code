@@ -244,9 +244,10 @@ views.duties = () => {
   <div class="card roster-file">
     <h2>${hi('upload')} Full roster for this week<span class="spacer"></span>
       ${r.file ? '<button class="btn sm ghost danger" data-action="removeRosterFile">Remove</button>' : ''}
-      <label class="btn sm primary">${icon('upload')} ${r.file ? 'Replace' : 'Upload'}<input type="file" accept="image/*,application/pdf" data-change="rosterUpload" data-id="${ws}" hidden></label></h2>
+      ${r.file ? `<button class="btn sm primary" data-action="readRoster">${icon('sparkle')} Find my duties</button>` : ''}
+      <label class="btn sm ${r.file ? '' : 'primary'}">${icon('upload')} ${r.file ? 'Replace' : 'Upload'}<input type="file" accept="image/*,application/pdf" data-change="rosterUpload" data-id="${ws}" hidden></label></h2>
     ${r.file ? `<div id="roster-file-preview" class="file-preview"><div class="muted small">Loading…</div></div>`
-      : '<div class="small muted">Upload a photo, screenshot or PDF of the full roster. Then fill in your duties, who you are working with and the on-call doctor for each day below.</div>'}
+      : `<div class="small muted">Upload a photo, screenshot or PDF of the full roster. ${getApiKey() ? `Your duties for ${esc(db.settings.rosterName || 'you')} are then read from it automatically, and you check them before saving.` : 'Add an Anthropic API key in Settings and your duties will be read from it automatically; otherwise fill in each day below.'}</div>`}
   </div>
   <div class="row" style="margin:14px 0 10px">
     <button class="btn sm" data-action="copyRoster">${icon('copy')} Copy last week’s duties</button>
@@ -371,7 +372,11 @@ Object.assign(changes, {
     toast('Saving roster…');
     compressImage(file)
       .then((blob) => fileStore.put('roster|' + ws, { blob, name: file.name, type: blob.type || file.type }))
-      .then(() => { rosterEnsure(ws).file = { name: file.name, type: file.type, added: today() }; commit(); toast('Roster uploaded'); })
+      .then(() => {
+        rosterEnsure(ws).file = { name: file.name, type: file.type, added: today() }; commit();
+        if (getApiKey() && db.settings.rosterName) readRoster(ws);
+        else toast('Roster uploaded. Add an API key in Settings to fill in your duties automatically.', null, null, 6000);
+      })
       .catch((e) => toast('Upload failed: ' + (e?.message || 'storage not available')));
   },
 });

@@ -17,6 +17,7 @@ A personal app that organises every part of your life in one place, in shades of
   - **Reminders** can be set on tasks and events. Done tasks are crossed out and priority ones highlighted.
 - **Duty roster**
   - **Upload the full roster** for each week (photo, screenshot or PDF). It's stored on your device.
+  - **Duties are read from the roster automatically.** Claude finds every entry for your name (set in Settings, e.g. *Dr Maushan*): your shift and times, who you're working with, days off and the on-call doctor. You check everything on a review screen before it's saved. This needs your own Anthropic API key (Settings → Roster reading), and costs a few US cents per roster. The photo is sent to Anthropic to be read, and the key is kept only on your device.
   - For each day, write your duty (from reusable shift types or a custom duty), **who you're working with** and **the on-call doctor**.
   - Copy last week's duties, see total hours, add the week to your phone calendar, and keep notes for the week.
 
@@ -79,6 +80,8 @@ Everything is saved in your browser's `localStorage` on this device. Use **Setti
 | `js/money.js` | Savings, Loans, Spending |
 | `js/travel.js` | Travel itineraries and packing |
 | `js/more.js` | Journal, Habits, Goals, Notes, Settings |
+| `js/roster-ai.js` | Reads roster photos with Claude and fills in your duties |
+| `js/vendor/anthropic-sdk.mjs` | Anthropic TypeScript SDK 1.3.0, bundled for the browser with esbuild (licence in `js/vendor/`) |
 | `js/study.js` | Study plan: topics to revise, weekly goals, study hours |
 | `js/main.js` | Navigation, rendering, event wiring |
 | `sw.js`, `manifest.json`, `icon.svg` | Offline support and installing as an app |
