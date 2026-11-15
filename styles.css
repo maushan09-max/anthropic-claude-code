@@ -590,3 +590,4 @@ dialog:has(.roster-review) { width: min(760px, calc(100vw - 16px)); }
 .leg .meta, .trip-hero .meta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .leg .meta span { display: inline-flex; align-items: center; gap: 4px; }
 .leg .meta .ic { width: 13px; height: 13px; }
+

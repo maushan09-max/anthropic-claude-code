@@ -112,3 +112,4 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) naviga
 
 render();
 checkReminders();
+requestPersistentStorage();

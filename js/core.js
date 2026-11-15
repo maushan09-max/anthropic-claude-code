@@ -53,6 +53,7 @@ const MED_SLOTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['night',
 const WATER_GOAL = 8;
 
 // ---------- Travel data (needed by the migration below) ----------
+/** Default packing list (Maushan's own). */
 const PACK_TEMPLATE = [
   ['Luggage', ['Clothes', 'Shawl', 'Pins', 'Others (socks, bra, undies, shapewear, tights)',
     'Toiletries (shower gel, shampoo, conditioner, face wash, toothbrush, toothpaste, cotton buds)',
@@ -138,11 +139,21 @@ function migrate(d) {
   return out;
 }
 function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) return migrate(JSON.parse(raw)); } catch (e) { console.warn('Load failed', e); }
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) { console.warn('Storage unavailable', e); }
+  if (raw) {
+    try { return migrate(JSON.parse(raw)); } catch (e) {
+      console.warn('Saved data could not be read', e);
+      try { localStorage.setItem(KEY + '.unreadable-' + Date.now(), raw); } catch { /* keep going */ } // never silently lose data
+      return migrate({});
+    }
+  }
   return migrate({});
 }
 let db = load();
 function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast('Could not save: ' + e.message); } }
+/** Ask the browser to keep LifeOS data permanently (not cleared automatically when the phone is low on space). */
+const requestPersistentStorage = () => (navigator.storage?.persist ? navigator.storage.persisted().then((p) => p || navigator.storage.persist()).catch(() => false) : Promise.resolve(false));
 const remove = (coll, id) => { db[coll] = db[coll].filter((x) => x.id !== id); };
 const find = (coll, id) => db[coll].find((x) => x.id === id);
 const clone = (o) => JSON.parse(JSON.stringify(o));

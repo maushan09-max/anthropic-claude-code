@@ -37,7 +37,12 @@ views.today = () => {
   const sg = studyGoals(ws), sgDone = sg.filter((g) => g.done).length;
   const toRevise = db.study.topics.filter((x) => x.status !== 'done').sort((a, b) => !!b.important - !!a.important).slice(0, 3);
 
+  const bk = db.settings.lastBackup, snooze = db.settings.backupSnooze;
+  const hasData = db.tasks.length + db.journal.length + db.notes.length + db.body.length + db.accounts.length + Object.keys(db.roster).length > 3;
+  const needBackup = hasData && (!bk || daysBetween(bk, t) > 14) && (!snooze || daysBetween(snooze, t) >= 7);
   return `
+  ${needBackup ? `<div class="banner">${icon('download')} <span class="grow">${bk ? `Your last backup was ${plural(daysBetween(bk, t), 'day')} ago.` : 'You haven’t backed up yet.'} Your data is only on this phone.</span>
+    <button class="btn sm primary" data-action="exportData">Back up now</button><button class="btn sm ghost" data-action="snoozeBackup">Later</button></div>` : ''}
   <div class="section hello">
     <div class="hello-title">${greet}${db.settings.name ? ', ' + esc(db.settings.name) : ''}</div>
     <div class="muted">${esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))}</div>
@@ -379,3 +384,5 @@ Object.assign(changes, {
       .catch((e) => toast('Upload failed: ' + (e?.message || 'storage not available')));
   },
 });
+
+actions.snoozeBackup = () => { db.settings.backupSnooze = today(); commit(); };

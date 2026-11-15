@@ -200,7 +200,9 @@ views.settings = () => {
         ${perm === 'default' ? '<button class="btn sm primary" data-action="enableNotify">Enable</button>' : ''}
         ${perm === 'granted' ? '<button class="btn sm" data-action="testNotify">Test</button>' : ''}</div></div>
     <div class="card"><h2>${hi('download')} Backup & restore</h2>
-      <p class="small muted">Everything is stored privately in this browser. Export a backup regularly, and to move to another device. Uploaded roster files stay on this device and are not included in the backup.</p>
+      <div class="kv"><span>Last backup</span><b class="${!s.lastBackup || daysBetween(s.lastBackup, today()) > 14 ? 'warn' : ''}">${s.lastBackup ? esc(fmtDate(s.lastBackup, { day: 'numeric', month: 'short', year: 'numeric' })) + (s.lastBackup === today() ? ' (today)' : ` (${plural(daysBetween(s.lastBackup, today()), 'day')} ago)`) : 'Never'}</b></div>
+      <div class="kv"><span>Storage</span><b id="storage-info" class="small">Checking…</b></div>
+      <p class="small muted">Your data is saved only on this device — not online. A backup is a single file with everything except roster photos and your API key. Save it to Files, iCloud Drive or Google Drive, or email it to yourself. To move to a new phone, install LifeOS there and use Import backup.</p>
       <div class="row"><button class="btn primary" data-action="exportData">${icon('download')} Export backup</button>
         <label class="btn">${icon('upload')} Import backup<input type="file" accept="application/json,.json" data-change="importData" hidden></label></div></div>
     <div class="card"><h2>${hi('chart')} Your data</h2>
@@ -211,7 +213,20 @@ views.settings = () => {
 Object.assign(actions, {
   enableNotify: () => askNotify(),
   testNotify: () => notify('LifeOS reminder test', 'Notifications are working'),
-  exportData: () => { download(JSON.stringify(db, null, 2), `lifeos-backup-${today()}.json`, 'application/json'); toast('Backup downloaded'); },
+  exportData: async () => {
+    const text = JSON.stringify(db, null, 2), name = `lifeos-backup-${today()}.json`;
+    const mark = () => { db.settings.lastBackup = today(); db.settings.backupSnooze = ''; commit(); };
+    // On phones, open the share sheet so the file can go straight to Files / iCloud Drive / Google Drive / email
+    try {
+      const file = new File([text], name, { type: 'application/json' });
+      if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'LifeOS backup' });
+        mark(); toast('Backup saved'); return;
+      }
+    } catch (e) { if (e?.name === 'AbortError') return; }
+    download(text, name, 'application/json'); mark();
+    toast('Backup downloaded — keep it somewhere safe, like Files, iCloud Drive, Google Drive or email', null, null, 6000);
+  },
   resetData: () => {
     if (confirm('Erase ALL LifeOS data on this device? Export a backup first if unsure.') && confirm('Really erase everything? This cannot be undone.')) {
       db = migrate({}); commit(); toast('All data erased');
@@ -228,9 +243,20 @@ Object.assign(changes, {
         const data = JSON.parse(r.result);
         if (typeof data !== 'object' || !Array.isArray(data.tasks)) throw new Error('Not a LifeOS backup');
         if (!confirm('Replace your current data with this backup?')) return;
-        db = migrate(data); commit(); toast('Backup restored');
+        db = migrate(data); if ($('#modal').open) $('#modal').close(); commit(); toast('Backup restored');
       } catch (e) { toast('Import failed: ' + e.message); }
     };
     r.readAsText(file);
   },
+});
+
+// ---------- Storage status (Settings) ----------
+afterRender.push((v) => {
+  if (v !== 'settings') return;
+  const el = $('#storage-info');
+  if (!el) return;
+  const kb = Math.max(1, Math.round(new Blob([JSON.stringify(db)]).size / 1024));
+  const size = kb < 1024 ? `${kb} KB` : `${(kb / 1024).toFixed(1)} MB`;
+  const done = (p) => { if (el.isConnected) el.textContent = `${size} · ${p ? 'kept permanently' : 'may be cleared if the phone runs low on space'}`; };
+  navigator.storage?.persisted ? navigator.storage.persisted().then(done, () => done(false)) : done(false);
 });
