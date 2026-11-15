@@ -52,6 +52,42 @@ const MOODS = [1, 2, 3, 4, 5].map((i) => icon('mood' + i));
 const MED_SLOTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['night', 'Night']];
 const WATER_GOAL = 8;
 
+// ---------- Travel data (needed by the migration below) ----------
+const PACK_TEMPLATE = [
+  ['Luggage', ['Clothes', 'Shawl', 'Pins', 'Others (socks, bra, undies, shapewear, tights)',
+    'Toiletries (shower gel, shampoo, conditioner, face wash, toothbrush, toothpaste, cotton buds)',
+    'Hair (extra hair band, hair dryer, heat protectant, Livon)', 'Body mist and perfume', 'Deodorant', 'Lotion',
+    'Make up and skincare (compact, lipstick, blush, highlighter, eyebrow pencil, tweezer, nail clipper, day & night moisturiser, eye cream)',
+    'Cloth steamer', 'Razor', 'Jewellery box', 'Hand bags', 'Shoes and sandals', 'Scissors', 'Tape']],
+  ['Backpack while travelling', ['Passport', 'Chargers & power banks (phone, AirPods, watch)', 'Documents', 'Tablet', 'Wallet with pin',
+    'Reethiva (hand lotion, lip gloss, small perfume, comb)', 'Sanitary (wet tissue, dry tissue, sanitiser, toilet cover, pad, underwear)',
+    'Hand bidet', 'Neck pillow', 'Hair band', 'Small mirror', 'Pen', 'Mask', 'Meds (Panadol, Pantaz, Emeset, balm)', 'Snacks', 'Supari',
+    'Scale', 'Plastic wrap', 'Scissor', 'Phone cover', 'Lint roller']],
+  ['Bag while on vacation', ['Passport', 'Power bank', 'Wallet', 'Sanitary (wet tissue, dry tissue, sanitiser, toilet cover, pad)', 'Shades', 'Supari', 'Pen', 'Small mirror']],
+];
+/** A fresh, unticked packing list from the user's saved template (or the default one). */
+const packingFrom = (tpl) => (tpl || PACK_TEMPLATE).flatMap(([cat, items]) => items.map((text) => ({ id: uid(), cat, text, done: false })));
+const newTrip = (v) => ({ id: uid(), name: '', destination: '', start: '', end: '', month: '', currency: 'MVR', budget: null, notes: '',
+  legs: [], hotels: [], items: [], expenses: [], packing: packingFrom(v.packTemplate), ...v, packTemplate: undefined });
+function migrateTrips(out) {
+  out.trips.forEach((tr) => {
+    tr.legs ||= []; tr.hotels ||= []; tr.items ||= []; tr.expenses ||= []; tr.packing ||= []; tr.currency ||= 'MVR';
+    // Flights and stays used to live in the itinerary: move them to their own sections
+    tr.items = tr.items.filter((it) => {
+      if (it.type === 'flight') { tr.legs.push({ id: it.id, mode: 'flight', from: '', to: it.location || '', departDate: it.date || '', departTime: it.time || '', arriveDate: it.date || '', arriveTime: it.end || '', carrier: it.title || '', number: it.ref || '', ref: '', seat: '', cost: null, remind: it.remind || '', notes: it.notes || '' }); return false; }
+      if (it.type === 'stay') { tr.hotels.push({ id: it.id, name: it.title || '', city: it.location || '', address: '', checkin: it.date || '', checkout: '', ref: it.ref || '', phone: '', cost: null, notes: it.notes || '' }); return false; }
+      return true;
+    });
+    tr.packing.forEach((p) => { p.cat ||= 'Other'; });
+  });
+  if (!out.settings.tripsSeeded) {
+    const has = (n) => out.trips.some((t) => t.name.toLowerCase().includes(n));
+    if (!has('umrah')) out.trips.push(newTrip({ name: 'Umrah', destination: 'Makkah & Madinah, Saudi Arabia', month: '2026-12', packTemplate: out.settings.packTemplate }));
+    if (!has('china')) out.trips.push(newTrip({ name: 'China', destination: 'China', month: '2027-03', packTemplate: out.settings.packTemplate }));
+    out.settings.tripsSeeded = true;
+  }
+}
+
 // ---------- Storage ----------
 const KEY = 'lifeos.v1';
 const defaults = () => ({
@@ -94,6 +130,7 @@ function migrate(d) {
       { id: uid(), name: 'Day off', start: '', end: '', color: '#f0a6ca' },
     ];
   }
+  migrateTrips(out);
   // Re-colour shift types still using the old default colours
   const OLD = { '#f59e0b': '#e6489b', '#6366f1': '#9b3fc4', '#334155': '#5b2a86', '#10b981': '#f0a6ca', '#64748b': '#a43fc2', '#0ea5e9': '#c55bd6' };
   out.dutyTypes.forEach((t) => { if (OLD[t.color]) t.color = OLD[t.color]; });
@@ -417,7 +454,10 @@ function upcomingReminderItems() {
   const out = [];
   db.tasks.forEach((t) => { if (!t.done && t.due) out.push({ item: t, date: t.due, kind: 'Task' }); });
   db.events.forEach((e) => { if (hasReminder(e)) for (let i = -1; i <= 8; i++) { const d = addDays(today(), i); if (occursOn(e, d)) out.push({ item: e, date: d, kind: 'Event' }); } });
-  db.trips.forEach((tr) => (tr.items || []).forEach((it) => it.date && out.push({ item: it, date: it.date, kind: tr.name })));
+  db.trips.forEach((tr) => {
+    (tr.items || []).forEach((it) => it.date && out.push({ item: it, date: it.date, kind: tr.name }));
+    (tr.legs || []).forEach((l) => l.departDate && out.push({ item: { id: l.id, title: `${l.from || '?'} → ${l.to || '?'}${l.number ? ' · ' + l.number : ''}`, time: l.departTime, remind: l.remind, location: l.from, important: true }, date: l.departDate, kind: `${tr.name} · ${l.mode === 'train' ? 'Train' : 'Flight'}` }));
+  });
   return out;
 }
 function checkReminders() {
