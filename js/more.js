@@ -192,6 +192,10 @@ views.settings = () => {
         <label class="field"><span>1 USD in MVR</span><input type="number" step="0.01" value="${esc(s.usdRate)}" data-change="setting" data-id="usdRate"></label>
         <label class="field"><span>Theme</span><select data-change="setting" data-id="theme">${[['auto', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([v, l]) => `<option value="${v}" ${s.theme === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       </div></div>
+    ${gdriveSettingsCard()}
+    <div class="card"><h2>${hi('sliders')} Menu sections</h2>
+      <p class="small muted">Untick sections you don’t use to hide them from the menu. Your data in them is kept.</p>
+      <div class="menu-toggles">${NAV.flatMap((g) => g[1]).filter(([k]) => !ALWAYS_SHOWN.includes(k)).map(([k, label, ic]) => `<label class="check"><input type="checkbox" ${!(s.hidden || []).includes(k) ? 'checked' : ''} data-change="toggleSection" data-id="${k}"> ${icon(ic)} ${label}</label>`).join('')}</div></div>
     ${rosterAiSettingsCard()}
     <div class="card"><h2>${hi('bell')} Reminders</h2>
       <p class="small muted">LifeOS shows reminders while it is open (or open in a background tab). For reminders that always reach you, even when the app is closed,
@@ -260,3 +264,5 @@ afterRender.push((v) => {
   const done = (p) => { if (el.isConnected) el.textContent = `${size} · ${p ? 'kept permanently' : 'may be cleared if the phone runs low on space'}`; };
   navigator.storage?.persisted ? navigator.storage.persisted().then(done, () => done(false)) : done(false);
 });
+
+changes.toggleSection = (el) => { const h = new Set(db.settings.hidden || []); if (el.checked) h.delete(el.dataset.id); else h.add(el.dataset.id); db.settings.hidden = [...h]; commit(); };

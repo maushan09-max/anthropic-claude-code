@@ -9,10 +9,19 @@ const rosterOncall = (d) => rosterGet(weekStart(d)).oncall?.[parseYmd(d).getDay(
 const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 const dutyHours = (x) => { if (!x.start || !x.end) return 0; let d = toMin(x.end) - toMin(x.start); if (d <= 0) d += 1440; return d / 60; };
 const dutyWith = (x) => x.with || x.person || '';
-const dutyChip = (x, ref) => `<span class="duty ${ref ? 'clickable' : ''}" style="--c:${esc(x.color || '#a43fc2')}" ${ref ? `data-action="editDuty" data-id="${ref}|${x.id}"` : ''}>
-  <b>${esc(x.title)}</b>${x.start ? ` ${esc(x.start)}–${esc(x.end)}` : ''}${dutyWith(x) ? `<span class="duty-with">with ${esc(dutyWith(x))}</span>` : ''}${x.location ? ` · ${esc(x.location)}` : ''}</span>`;
+/** Early-morning / night shifts (starting midnight–8 AM) are covered by the previous day's on-call doctor. */
+const isEarlyShift = (x) => !!x?.start && toMin(x.start) < 8 * 60;
+const oncallFor = (d, x) => (isEarlyShift(x) ? rosterOncall(addDays(d, -1)) : rosterOncall(d));
+const dutyChip = (x, ref, oncall) => `<span class="duty ${ref ? 'clickable' : ''}" style="--c:${esc(x.color || '#a43fc2')}" ${ref ? `data-action="editDuty" data-id="${ref}|${x.id}"` : ''}>
+  <b>${esc(x.title)}</b>${x.start ? ` ${esc(x.start)}–${esc(x.end)}` : ''}${dutyWith(x) ? `<span class="duty-with">with ${esc(dutyWith(x))}</span>` : ''}${x.location ? ` · ${esc(x.location)}` : ''}${oncall ? `<span class="duty-with">On-call: ${esc(oncall)}</span>` : ''}</span>`;
 const oncallLine = (d) => (rosterOncall(d) ? `<div class="oncall-line">${icon('badge')} On-call: <b>${esc(rosterOncall(d))}</b></div>` : '');
-const dutyBlock = (d) => (rosterDay(d).length || rosterOncall(d) ? `<div class="duty-line">${rosterDay(d).map((x) => dutyChip(x)).join('')}</div>${oncallLine(d)}` : '');
+const leaveChip = (d) => { const e = typeof leaveOn === 'function' && leaveOn(d); return e ? `<span class="duty" style="--c:#f0a6ca"><b>${esc(e.type)} leave</b>${e.status === 'planned' ? ' (planned)' : ''}</span>` : ''; };
+const dutyBlock = (d) => {
+  const list = rosterDay(d).filter((x) => !/off/i.test(x.title) || rosterDay(d).length === 1);
+  const work = list.filter((x) => !/off/i.test(x.title));
+  if (!list.length && !rosterOncall(d) && !leaveChip(d)) return '';
+  return `<div class="duty-line">${leaveChip(d)}${list.map((x) => dutyChip(x, null, /off/i.test(x.title) ? '' : oncallFor(d, x))).join('')}</div>${!work.length ? oncallLine(d) : ''}`;
+};
 
 // ---------- Today ----------
 views.today = () => {
@@ -37,10 +46,12 @@ views.today = () => {
   const sg = studyGoals(ws), sgDone = sg.filter((g) => g.done).length;
   const toRevise = db.study.topics.filter((x) => x.status !== 'done').sort((a, b) => !!b.important - !!a.important).slice(0, 3);
 
+  const cds = allCountdowns(), specials = upcomingSpecials(14);
   const bk = db.settings.lastBackup, snooze = db.settings.backupSnooze;
   const hasData = db.tasks.length + db.journal.length + db.notes.length + db.body.length + db.accounts.length + Object.keys(db.roster).length > 3;
-  const needBackup = hasData && (!bk || daysBetween(bk, t) > 14) && (!snooze || daysBetween(snooze, t) >= 7);
+  const needBackup = hasData && !gdriveOn() && (!bk || daysBetween(bk, t) > 14) && (!snooze || daysBetween(snooze, t) >= 7);
   return `
+  ${gdriveBanner()}
   ${needBackup ? `<div class="banner">${icon('download')} <span class="grow">${bk ? `Your last backup was ${plural(daysBetween(bk, t), 'day')} ago.` : 'You haven’t backed up yet.'} Your data is only on this phone.</span>
     <button class="btn sm primary" data-action="exportData">Back up now</button><button class="btn sm ghost" data-action="snoozeBackup">Later</button></div>` : ''}
   <div class="section hello">
@@ -51,7 +62,7 @@ views.today = () => {
     <a class="stat" href="#/weekly"><div class="label">Today's tasks</div><div class="value">${todays.filter((x) => !x.done).length}<small> left</small></div></a>
     <a class="stat" href="#/weekly"><div class="label">This week</div><div class="value">${weekDone}/${weekAll.length}</div>${bar(weekAll.length ? (weekDone / weekAll.length) * 100 : 0, 'done')}</a>
     <a class="stat" href="#/duties"><div class="label">Duty today</div><div class="value small-val">${duties.length ? esc(duties.map((d) => d.title).join(', ')) : '—'}</div>
-      ${rosterOncall(t) ? `<div class="small muted">On-call: ${esc(rosterOncall(t))}</div>` : ''}</a>
+      ${(() => { const w = duties.find((x) => !/off/i.test(x.title)); const oc = w ? oncallFor(t, w) : rosterOncall(t); return oc ? `<div class="small muted">On-call: ${esc(oc)}</div>` : ''; })()}</a>
     <a class="stat" href="#/meals"><div class="label">Planned today</div><div class="value">${Math.round(dm.kcal)}<small> / ${T.kcal} kcal</small></div></a>
   </div>
   <div class="grid">
@@ -83,6 +94,7 @@ views.today = () => {
     <div class="card">
       <h2>${hi('grad')} Study this week <span class="spacer"></span><a class="card-link" href="#/study">Study plan ${icon('chevR')}</a></h2>
       ${sg.length ? `<div class="kv"><span>Weekly goals</span><b>${sgDone}/${sg.length}</b></div>${bar((sgDone / sg.length) * 100, 'done')}` : '<div class="small muted">No goals set for this week yet.</div>'}
+      ${revisionsDue().length ? `<div class="banner small" style="margin-top:8px">${icon('bell')} <span class="grow">${plural(revisionsDue().length, 'topic')} due for revision</span><a class="btn sm" href="#/study">Revise</a></div>` : ''}
       ${toRevise.length ? `<div class="section-title">Next to revise</div><ul class="items">${toRevise.map((x) => `<li class="item ${x.important ? 'important' : ''}"><div class="body"><div class="title">${esc(x.title)}</div>${x.subject ? `<div class="meta"><span>${esc(x.subject)}</span></div>` : ''}</div></li>`).join('')}</ul>` : ''}
     </div>
     <div class="card">
@@ -98,10 +110,17 @@ views.today = () => {
       <div class="kv"><span>Savings (MVR)</span><b>${fmtCur(sv.MVR, 'MVR')}</b></div>
       <div class="kv"><span>Savings (USD)</span><b>${fmtCur(sv.USD, 'USD')}</b></div>
       ${lo.activeCount ? `<div class="kv"><span>I owe</span><b class="bad">${curList(lo.owe)}</b></div><div class="kv"><span>Owed to me</span><b class="good">${curList(lo.owed)}</b></div>` : ''}
+      ${db.payday.salary ? (() => { const p = paydayInfo(); return `<div class="kv"><span>Payday in ${plural(p.daysLeft, 'day')}</span><b class="${p.left < 0 ? 'bad' : ''}">${money(p.left)} left</b></div>`; })() : ''}
     </div>
-    ${trip ? `<div class="card clickable" data-action="openTrip" data-id="${trip.id}"><h2>${hi('plane')} Next trip</h2>
-      <div style="font-size:18px;font-weight:600">${esc(trip.name)}</div><div class="muted small">${esc(trip.destination || '')} · ${esc(tripDates(trip))}</div>
-      <div style="margin-top:8px">${tripCountdown(trip)}</div></div>` : ''}
+    <div class="card"><h2>${hi('sparkle')} Countdowns<span class="spacer"></span><button class="btn sm" data-action="newCountdown" data-id="">+ Add</button></h2>
+      ${cds.length ? countdownList(cds.slice(0, 5)) : '<div class="small muted">Add exams and events to count down to. Upcoming trips appear here automatically.</div>'}</div>
+    ${!db.settings.hidden.includes('faith') ? `<div class="card"><h2>${hi('moonStar')} Prayers today<span class="spacer"></span><a class="card-link" href="#/faith">${prayerExcused(t) ? 'Excused today' : `${prayedCount(t)}/5`} ${icon('chevR')}</a></h2>
+      ${prayerButtons(t)}
+      <div class="row small" style="margin-top:8px"><span class="grow muted">${icon('bookOpen')} Quran today: <b>${quranToday()}</b> pages · page ${db.quran.page}</span><button class="btn sm" data-action="quranAdd" data-id="1">+1 page</button></div></div>` : ''}
+    ${specials.length ? `<div class="card"><h2>${hi('gift')} Coming up<span class="spacer"></span><a class="card-link" href="#/dates">All ${icon('chevR')}</a></h2>
+      <ul class="items">${specials.map(({ x, d }) => `<li class="item clickable" data-action="editSpecial" data-id="${x.id}" style="align-items:center"><span class="hicon">${icon(DATE_ICONS[x.type] || 'gift')}</span>
+        <div class="body"><div class="title">${esc(specialLabel(x))}</div><div class="meta"><span>${esc(fmtDate(d))}</span>${x.gifts ? `<span>${icon('gift')} ${esc(x.gifts)}</span>` : ''}</div></div>
+        <b class="cd-days">${daysBetween(t, d) === 0 ? 'Today' : daysBetween(t, d) === 1 ? 'Tomorrow' : `${daysBetween(t, d)} days`}</b></li>`).join('')}</ul></div>` : ''}
     <div class="card">
       <h2>${hi('book')} Journal</h2>
       <div class="prompt small">${icon('chat')} ${esc(dailyPrompt())}</div>
@@ -164,6 +183,7 @@ views.monthly = () => {
   const cal = monthGrid(ym, (s) => {
     const evs = eventsOn(s), tks = monthTasksOn(s).sort(sortTasks);
     const chips = [
+      ...specialsOn(s).map((x) => `<span class="ev imp">${esc(specialLabel(x))}</span>`),
       ...evs.map((e) => `<span class="ev ${e.important ? 'imp' : ''}">${e.time ? esc(e.time) + ' ' : ''}${esc(e.title)}</span>`),
       ...tks.map((x) => `<span class="tk ${x.done ? 'done' : ''} ${x.important ? 'imp' : ''}">${esc(x.title)}</span>`),
     ];
@@ -233,7 +253,7 @@ views.duties = () => {
     return `<div class="roster-row ${d === t ? 'is-today' : ''}">
       <div class="roster-day"><b>${DOW[i]}</b><span class="small muted">${esc(fmtDate(d, { month: 'short', day: 'numeric' }))}</span></div>
       <div class="roster-main">
-        <div class="roster-duties">${list.map((x) => dutyChip(x, `${ws}|${i}`)).join('') || '<span class="muted small">No duty</span>'}</div>
+        <div class="roster-duties">${leaveChip(d)}${list.map((x) => dutyChip(x, `${ws}|${i}`, isEarlyShift(x) && oncallFor(d, x) ? `${oncallFor(d, x)} (from ${DOW_SHORT[(i + 6) % 7]})` : '')).join('') || (leaveChip(d) ? '' : '<span class="muted small">No duty</span>')}</div>
         <label class="oncall">${icon('badge')}<span>On-call</span><input value="${esc(r.oncall?.[i] || '')}" placeholder="On-call doctor" data-change="rosterOncall" data-id="${ws}|${i}" list="oncall-names" autocomplete="off"></label>
       </div>
       <select class="add-duty" data-change="addDuty" data-id="${ws}|${i}" aria-label="Add duty for ${DOW[i]}">
@@ -339,7 +359,7 @@ Object.assign(actions, {
     for (const [i, l] of Object.entries(r.days)) {
       l.forEach((x) => x.start && list.push({
         item: { ...x, time: x.start, end: toMin(x.end) > toMin(x.start) ? x.end : '', id: x.id,
-          notes: [dutyWith(x) && `With: ${dutyWith(x)}`, r.oncall?.[i] && `On-call: ${r.oncall[i]}`, x.notes].filter(Boolean).join('\n') },
+          notes: [dutyWith(x) && `With: ${dutyWith(x)}`, oncallFor(addDays(ws, Number(i)), x) && `On-call: ${oncallFor(addDays(ws, Number(i)), x)}`, x.notes].filter(Boolean).join('\n') },
         date: addDays(ws, Number(i)),
       }));
     }

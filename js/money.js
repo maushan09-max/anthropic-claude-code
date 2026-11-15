@@ -25,9 +25,9 @@ function loanTotals() {
   return { owe, owed, activeCount };
 }
 
-const FIN_TABS = [['savings', 'bank', 'Savings'], ['loans', 'swap', 'Loans'], ['spending', 'receipt', 'Spending']].map(([k, ic, l]) => [k, `${icon(ic)} ${l}`]);
+const FIN_TABS = [['savings', 'bank', 'Savings'], ['goals', 'target', 'Goals'], ['payday', 'cash', 'Payday'], ['loans', 'swap', 'Loans'], ['spending', 'receipt', 'Spending']].map(([k, ic, l]) => [k, `${icon(ic)} ${l}`]);
 views.finances = () => `${tabs('financeTab', state.financeTab, FIN_TABS)}<div style="margin-top:14px">${finTabs[state.financeTab]()}</div>`;
-TOP_ACTIONS.finances = () => ({ savings: ['newAccount', '+ Account'], loans: ['newLoan', '+ Loan'], spending: ['newTx', '+ Expense', 'expense'] }[state.financeTab]);
+TOP_ACTIONS.finances = () => ({ savings: ['newAccount', '+ Account'], goals: ['newSavingsGoal', '+ Goal'], payday: ['editPayday', 'Set up payday'], loans: ['newLoan', '+ Loan'], spending: ['newTx', '+ Expense', 'expense'] }[state.financeTab]);
 actions.financeTab = (k) => { state.financeTab = k; render(); };
 const finTabs = {};
 
@@ -244,4 +244,120 @@ Object.assign(actions, {
     fields: EXPENSE_CATS.map((c) => ({ name: c, label: c, type: 'number', step: '1', min: 0, half: true, placeholder: 'No limit' })),
     onSave: (v) => { db.budgets = Object.fromEntries(Object.entries(v).filter(([, n]) => n)); },
   }),
+});
+
+// ---------- Savings goals ----------
+const goalSaved = (g) => Number(g.start || 0) + (g.contributions || []).reduce((s, c) => s + Number(c.amount || 0), 0);
+const monthsUntil = (d) => { const a = parseYmd(today()), b = parseYmd(d); return Math.max(1, (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth() + (b.getDate() >= a.getDate() ? 0 : -1) || 1); };
+finTabs.goals = () => {
+  if (!db.savingsGoals.length) return `<div class="card">${empty('target', 'Save towards something — a trip, a phone, an emergency fund. See how much is left and how much to put aside each month.<br><br><button class="btn primary" data-action="newSavingsGoal">+ New savings goal</button>')}</div>`;
+  return `<div class="grid wide">${db.savingsGoals.map((g) => {
+    const saved = goalSaved(g), left = Math.max(0, Number(g.target) - saved), pct = g.target ? (saved / g.target) * 100 : 0;
+    const trip = g.tripId && find('trips', g.tripId);
+    const perMonth = g.deadline && g.deadline > today() && left ? left / monthsUntil(g.deadline) : 0;
+    return `<div class="card"><h3>${hi(trip ? 'plane' : 'target')} ${esc(g.name)}<span class="spacer"></span><button class="icon-btn" data-action="editSavingsGoal" data-id="${g.id}" aria-label="Edit goal">${icon('edit')}</button></h3>
+      <div class="big-num">${fmtCur(saved, g.currency)}</div><div class="small muted">of ${fmtCur(g.target, g.currency)}${trip ? ` · for ${esc(trip.name)}` : ''}</div>
+      <div style="margin:8px 0">${bar(pct, pct >= 100 ? 'done' : '')}</div>
+      ${pct >= 100 ? `<div class="good small"><b>Goal reached!</b></div>` : `<div class="kv"><span>Still to save</span><b>${fmtCur(left, g.currency)}</b></div>`}
+      ${g.deadline ? `<div class="kv"><span>By</span><b>${esc(fmtDate(g.deadline, { day: 'numeric', month: 'short', year: 'numeric' }))}</b></div>` : ''}
+      ${perMonth ? `<div class="kv"><span>Put aside</span><b>${fmtCur(perMonth, g.currency)} / month</b></div>` : ''}
+      ${(g.contributions || []).length ? `<details class="payments"><summary class="small">${plural(g.contributions.length, 'deposit')}</summary><ul class="items">${g.contributions.slice().sort((a, b) => b.date.localeCompare(a.date)).map((c) => `<li class="item small">
+        <span class="grow">${esc(fmtDate(c.date))}${c.note ? ' · ' + esc(c.note) : ''}</span><b>${fmtCur(c.amount, g.currency)}</b>
+        <button class="icon-btn" data-action="delGoalMoney" data-id="${g.id}|${c.id}" aria-label="Delete">${icon('x')}</button></li>`).join('')}</ul></details>` : ''}
+      <div class="row" style="margin-top:8px"><button class="btn sm primary" data-action="addGoalMoney" data-id="${g.id}">+ Add money</button></div>
+    </div>`;
+  }).join('')}</div>`;
+};
+function savingsGoalForm(g) {
+  openForm({
+    title: g ? 'Edit savings goal' : 'New savings goal', values: g || { currency: 'MVR' },
+    fields: [
+      { name: 'name', label: 'Saving for', required: true, placeholder: 'China trip, emergency fund…' },
+      { name: 'target', label: 'Target amount', type: 'number', step: '0.01', min: 0, required: true, half: true },
+      { name: 'currency', label: 'Currency', type: 'select', options: CURRENCIES, half: true },
+      { name: 'start', label: 'Already saved', type: 'number', step: '0.01', min: 0, half: true },
+      { name: 'deadline', label: 'Target date', type: 'date', half: true },
+      { name: 'tripId', label: 'Link to a trip (optional)', type: 'select', options: [['', 'None'], ...db.trips.map((t) => [t.id, t.name])] },
+    ],
+    onSave: (v) => (g ? Object.assign(g, v) : db.savingsGoals.push({ id: uid(), contributions: [], ...v })),
+    onDelete: g ? () => remove('savingsGoals', g.id) : null,
+  });
+}
+Object.assign(actions, {
+  newSavingsGoal: () => savingsGoalForm(null),
+  editSavingsGoal: (id) => savingsGoalForm(find('savingsGoals', id)),
+  addGoalMoney: (id) => {
+    const g = find('savingsGoals', id);
+    openForm({
+      title: `Add to ${g.name}`, values: { date: today() },
+      fields: [{ name: 'amount', label: `Amount (${g.currency})`, type: 'number', step: '0.01', required: true, half: true }, { name: 'date', label: 'Date', type: 'date', half: true }, { name: 'note', label: 'Note' }],
+      onSave: (v) => { (g.contributions ||= []).push({ id: uid(), ...v, date: v.date || today() }); if (goalSaved(g) >= g.target) toast('Goal reached!'); },
+    });
+  },
+  delGoalMoney: (id) => { const [gid, cid] = split(id); const g = find('savingsGoals', gid); g.contributions = g.contributions.filter((c) => c.id !== cid); commit(); },
+});
+
+// ---------- Payday ----------
+/** Payday on a given month; days past the month's end fall on its last day. */
+const paydayIn = (ym, day) => { const dim = daysInMonth(ym); return `${ym}-${pad(day === 'last' ? dim : Math.min(Number(day) || 25, dim))}`; };
+function paydayInfo() {
+  const p = db.payday, t = today(), ym = t.slice(0, 7);
+  const thisM = paydayIn(ym, p.day);
+  const last = thisM <= t ? thisM : paydayIn(addMonths(ym, -1), p.day);
+  const next = thisM > t ? thisM : paydayIn(addMonths(ym, 1), p.day);
+  const commitments = (p.commitments || []).reduce((s, c) => s + Number(c.amount || 0), 0);
+  const spent = db.transactions.filter((x) => x.type === 'expense' && x.date >= last && x.date <= t).reduce((s, x) => s + Number(x.amount), 0);
+  const left = Number(p.salary || 0) - commitments - spent;
+  const daysLeft = daysBetween(t, next);
+  return { last, next, commitments, spent, left, daysLeft, perDay: daysLeft ? left / daysLeft : left };
+}
+finTabs.payday = () => {
+  const p = db.payday;
+  if (!p.salary) return `<div class="card">${empty('cash', 'See how much is left until your next salary — after fixed costs like rent and loan payments, and what you’ve spent so far.<br><br><button class="btn primary" data-action="editPayday">Set up payday</button>')}</div>`;
+  const i = paydayInfo();
+  return `
+  <div class="card payday-hero">
+    <div class="cycle-ring"><span>Payday in</span><b>${i.daysLeft}</b><span>${i.daysLeft === 1 ? 'day' : 'days'}</span></div>
+    <div class="grow"><div class="cycle-title ${i.left < 0 ? 'bad' : ''}">${money(i.left)} left</div>
+      <div class="muted">until ${esc(fmtDate(i.next, { weekday: 'long', day: 'numeric', month: 'short' }))}</div>
+      <div class="small" style="margin-top:4px">About <b>${money(Math.max(0, i.perDay))}</b> a day</div></div>
+  </div>
+  <div class="grid wide" style="margin-top:14px">
+    <div class="card"><h2>${hi('chart')} Since payday (${esc(fmtDate(i.last, { day: 'numeric', month: 'short' }))})</h2>
+      <div class="kv"><span>Salary</span><b class="good">${money(p.salary)}</b></div>
+      <div class="kv"><span>Fixed costs</span><b>− ${money(i.commitments)}</b></div>
+      <div class="kv"><span>Spent so far</span><b>− ${money(i.spent)}</b></div>
+      <div class="kv" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px"><span><b>Left</b></span><b class="${i.left < 0 ? 'bad' : 'good'}">${money(i.left)}</b></div>
+      <p class="hint">“Spent so far” comes from expenses you log under Finances → Spending.</p>
+      <div class="row"><button class="btn sm" data-action="newTx" data-id="expense">+ Log expense</button><button class="btn sm" data-action="salaryToIncome">Add salary to income</button></div></div>
+    <div class="card"><h2>${hi('receipt')} Fixed monthly costs<span class="spacer"></span><button class="btn sm" data-action="newCommitment">+ Add</button></h2>
+      ${(p.commitments || []).length ? `<ul class="items">${p.commitments.map((c) => `<li class="item clickable" data-action="editCommitment" data-id="${c.id}" style="align-items:center"><div class="body title">${esc(c.name)}</div><b>${money(c.amount)}</b></li>`).join('')}</ul>`
+        : '<div class="small muted">Rent, loan payments, phone, savings transfers…</div>'}</div>
+  </div>`;
+};
+function commitmentForm(c) {
+  openForm({
+    title: c ? 'Edit fixed cost' : 'New fixed cost', values: c || {},
+    fields: [{ name: 'name', label: 'What', required: true, placeholder: 'Rent, phone bill…' }, { name: 'amount', label: `Amount per month (${db.settings.currency})`, type: 'number', step: '0.01', min: 0, required: true }],
+    onSave: (v) => (c ? Object.assign(c, v) : (db.payday.commitments ||= []).push({ id: uid(), ...v })),
+    onDelete: c ? () => { db.payday.commitments = db.payday.commitments.filter((x) => x !== c); } : null,
+  });
+}
+Object.assign(actions, {
+  editPayday: () => { state.financeTab = 'payday'; openForm({
+    title: 'Payday', values: { salary: db.payday.salary, day: String(db.payday.day ?? 25) },
+    fields: [
+      { name: 'salary', label: `Monthly salary, after deductions (${db.settings.currency})`, type: 'number', step: '0.01', min: 0, required: true },
+      { name: 'day', label: 'Paid on', type: 'select', options: [...Array.from({ length: 31 }, (_, i) => [String(i + 1), `Day ${i + 1} of the month`]), ['last', 'Last day of the month']] },
+    ],
+    onSave: (v) => { db.payday.salary = v.salary; db.payday.day = v.day === 'last' ? 'last' : Number(v.day); },
+  }); },
+  newCommitment: () => commitmentForm(null),
+  editCommitment: (id) => commitmentForm(db.payday.commitments.find((c) => c.id === id)),
+  salaryToIncome: () => {
+    const i = paydayInfo();
+    if (db.transactions.some((t) => t.type === 'income' && t.category === 'Salary' && t.date === i.last)) return toast('Salary for this payday is already added');
+    db.transactions.push({ id: uid(), type: 'income', amount: db.payday.salary, category: 'Salary', date: i.last, note: 'Salary' });
+    commit(); toast('Salary added to income');
+  },
 });

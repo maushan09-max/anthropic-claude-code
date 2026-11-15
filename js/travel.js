@@ -267,6 +267,7 @@ function tripBudget(tr) {
         <b>${fmtCur(e.amount, c)}</b></li>`).join('')}</ul>` : '<div class="small muted">Log what you spend during the trip.</div>'}
     </div>
   </div>
+  ${(() => { const g = db.savingsGoals.find((x) => x.tripId === tr.id); return g ? `<div class="card" style="margin-top:14px"><h3>${hi('target')} Savings goal: ${esc(g.name)}</h3><div class="kv"><span>Saved</span><b>${fmtCur(goalSaved(g), g.currency)} of ${fmtCur(g.target, g.currency)}</b></div>${bar(g.target ? (goalSaved(g) / g.target) * 100 : 0, goalSaved(g) >= g.target ? 'done' : '')}</div>` : ''; })()}
   <p class="hint">All amounts are in ${esc(c)}. Change the trip currency under Edit trip.</p>`;
 }
 function expenseForm(tr, e) {

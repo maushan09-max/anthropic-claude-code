@@ -23,7 +23,10 @@ function macroBars(m, T) {
   return row('kcal', m.kcal, T.kcal, '', '') + row('P', m.p, T.p, 'g', 'p') + row('C', m.c, T.c, 'g', 'c') + row('F', m.f, T.f, 'g', 'f');
 }
 
-views.meals = () => {
+state.mealTab = 'plan';
+TOP_ACTIONS.meals = () => (state.mealTab === 'recipes' ? ['newRecipe', '+ Recipe'] : null);
+views.meals = () => `${tabs('mealTab', state.mealTab, [['plan', `${icon('calWeek')} Weekly plan`], ['recipes', `${icon('chef')} Recipes`]])}<div style="margin-top:14px">${state.mealTab === 'recipes' ? recipesView() : mealPlanView()}</div>`;
+const mealPlanView = () => {
   const ws = state.mealWeek, T = db.settings.targets, t = today();
   const week = db.meals[ws] || {};
   const days = [0, 1, 2, 3, 4, 5, 6].map((i) => dayMacros(ws, i));
@@ -70,8 +73,8 @@ views.meals = () => {
   </div>`;
 };
 
-function openMealEditor(ws, i, slot) {
-  const meal = getMeal(ws, i, slot) || { name: '', items: [] };
+/** Shared editor for a list of foods (used by meals and recipes). */
+function openFoodEditor(o) {
   const numIn = (cls, label, v) => `<label class="mf"><span>${label}</span><input class="${cls}" type="number" step="any" min="0" inputmode="decimal" placeholder="${label}" value="${esc(v ?? '')}" aria-label="${label}"></label>`;
   const rowHtml = (it = { unit: 'g' }) => `<div class="mrow">
     <label class="mf m-name-wrap"><span>Food</span><input class="m-name" list="food-lib" placeholder="Food" value="${esc(it.name || '')}" aria-label="Food"></label>
@@ -82,17 +85,21 @@ function openMealEditor(ws, i, slot) {
     <button type="button" class="icon-btn m-del" aria-label="Remove food">${icon('x')}</button></div>`;
   const dlg = $('#modal');
   dlg.innerHTML = `<form class="form meal-form" novalidate>
-    <h2>${DOW[i]} · ${slot}</h2>
-    <label class="field"><span>Meal name</span><input name="mname" value="${esc(meal.name || '')}" placeholder="e.g. Chicken rice bowl"></label>
+    <h2>${esc(o.title)}</h2>
+    <label class="field ${o.extraTop ? 'half' : ''}"><span>${esc(o.nameLabel)}</span><input name="mname" value="${esc(o.name || '')}" placeholder="${esc(o.namePlaceholder || '')}"></label>
+    ${o.extraTop || ''}
+    ${o.recipePicker && db.recipes.length ? `<div class="recipe-pick"><select class="rp-recipe" aria-label="Recipe"><option value="">Add a saved recipe…</option>${db.recipes.map((r) => `<option value="${r.id}">${esc(r.name)}</option>`).join('')}</select>
+      <input class="rp-serv" type="number" min="0.25" step="0.25" value="1" aria-label="Servings"><span class="small muted">serving(s)</span><button type="button" class="btn sm" data-addrecipe>Add</button></div>` : ''}
     <div class="mhead"><span>Food</span><span>Amount</span><span>Unit</span><span>Protein</span><span>Carbs</span><span>Fat</span><span>kcal</span><span></span><span></span></div>
-    <div class="mrows">${(meal.items.length ? meal.items : [undefined]).map(rowHtml).join('')}</div>
-    <button type="button" class="btn sm" data-addrow>+ Add food</button>
-    <div class="small muted" style="width:100%">Protein / carbs / fat / kcal are <b>per 100 g or ml</b>, or <b>per 1</b> piece, serving, cup, etc.
-      Leave kcal blank to calculate it (4·P + 4·C + 9·F). Foods you enter are remembered for next time.</div>
+    <div class="mrows">${(o.items.length ? o.items : [undefined]).map(rowHtml).join('')}</div>
+    <div class="row"><button type="button" class="btn sm" data-addrow>+ Add food</button>
+      ${getApiKey() ? `<button type="button" class="btn sm" data-aifill>${icon('sparkle')} Fill missing macros with AI</button>` : ''}</div>
+    <div class="small muted" style="width:100%">Pick a food from the list and its macros fill in automatically (built-in values are approximate). Macros are <b>per 100 g or ml</b>, or <b>per 1</b> piece, serving, cup, etc. Leave kcal blank to calculate it.</div>
+    ${o.extraBottom || ''}
     <div class="meal-total"></div>
-    <datalist id="food-lib">${db.foods.map((f) => `<option value="${esc(f.name)}">`).join('')}</datalist>
+    <datalist id="food-lib">${allFoodNames().map((n) => `<option value="${esc(n)}">`).join('')}</datalist>
     <div class="row end form-actions">
-      ${meal.items.length || meal.name ? '<button type="button" class="btn danger" data-clear>Clear meal</button>' : ''}
+      ${o.onClear ? `<button type="button" class="btn danger" data-clear>${esc(o.clearLabel || 'Clear')}</button>` : ''}
       <span class="grow"></span><button type="button" class="btn ghost" data-cancel>Cancel</button><button type="submit" class="btn primary">Save</button></div>
   </form>`;
   const form = $('form', dlg), box = $('.mrows', form);
@@ -104,31 +111,52 @@ function openMealEditor(ws, i, slot) {
   const read = () => [...box.querySelectorAll('.mrow')].map(readRow).filter((x) => x.name);
   const update = () => {
     box.querySelectorAll('.mrow').forEach((r) => { const m = itemMacros(readRow(r)); r.querySelector('.m-out').textContent = m.kcal ? `= ${Math.round(m.kcal)} kcal` : ''; });
-    $('.meal-total', form).innerHTML = `<b>Meal total:</b> ${macroLine(sumMacros(read().map(itemMacros)))}`;
+    $('.meal-total', form).innerHTML = o.totalHtml ? o.totalHtml(sumMacros(read().map(itemMacros)), form) : `<b>Total:</b> ${macroLine(sumMacros(read().map(itemMacros)))}`;
   };
-  form.addEventListener('input', update);
-  form.addEventListener('change', (e) => {
-    if (!e.target.classList.contains('m-name')) return;
-    const f = db.foods.find((x) => x.name.toLowerCase() === e.target.value.trim().toLowerCase());
-    if (!f) return;
-    const r = e.target.closest('.mrow');
+  const fillRow = (r, f) => {
     r.querySelector('.m-unit').value = f.unit;
     ['p', 'c', 'f'].forEach((k) => { r.querySelector('.m-' + k).value = f[k]; });
     r.querySelector('.m-k').value = f.kcal ?? '';
     if (!r.querySelector('.m-amt').value) r.querySelector('.m-amt').value = f.lastAmount || (per100(f.unit) ? 100 : 1);
-    update();
+  };
+  form.addEventListener('input', update);
+  form.addEventListener('change', (e) => {
+    if (!e.target.classList.contains('m-name')) return;
+    const f = findFood(e.target.value);
+    if (f) { fillRow(e.target.closest('.mrow'), f); update(); }
   });
   box.addEventListener('click', (e) => { if (e.target.closest('.m-del')) { e.target.closest('.mrow').remove(); if (!box.children.length) box.insertAdjacentHTML('beforeend', rowHtml()); update(); } });
   $('[data-addrow]', form).onclick = () => { box.insertAdjacentHTML('beforeend', rowHtml()); box.lastElementChild.querySelector('input').focus(); };
+  const addR = $('[data-addrecipe]', form);
+  if (addR) addR.onclick = () => {
+    const r = db.recipes.find((x) => x.id === $('.rp-recipe', form).value);
+    if (!r) return toast('Choose a recipe first');
+    const k = (num($('.rp-serv', form).value) || 1) / (num(r.servings) || 1);
+    [...box.querySelectorAll('.mrow')].forEach((row) => { if (!readRow(row).name) row.remove(); });
+    r.items.forEach((it) => box.insertAdjacentHTML('beforeend', rowHtml({ ...it, amount: round1(num(it.amount) * k) })));
+    if (!form.elements.mname.value.trim()) form.elements.mname.value = r.name;
+    update();
+  };
+  const ai = $('[data-aifill]', form);
+  if (ai) ai.onclick = async () => {
+    const rows = [...box.querySelectorAll('.mrow')].filter((r) => { const x = readRow(r); return x.name && !x.p && !x.c && !x.f && x.kcal === ''; });
+    if (!rows.length) return toast('Every food already has macros');
+    ai.disabled = true; ai.textContent = 'Estimating…';
+    try {
+      const est = await estimateMacrosAI(rows.map((r) => ({ name: readRow(r).name, unit: readRow(r).unit })));
+      rows.forEach((r, idx) => { const e = est[idx]; if (e) fillRow(r, { unit: readRow(r).unit, p: round1(e.protein), c: round1(e.carbs), f: round1(e.fat), kcal: Math.round(e.kcal) }); });
+      update(); toast(`Filled macros for ${plural(rows.length, 'food')} — check they look right`);
+    } catch (e) { toast(e.message || 'Couldn’t estimate macros'); }
+    ai.disabled = false; ai.innerHTML = `${icon('sparkle')} Fill missing macros with AI`;
+  };
   $('[data-cancel]', form).onclick = () => dlg.close();
   const clr = $('[data-clear]', form);
-  if (clr) clr.onclick = () => { if (db.meals[ws]?.[i]) delete db.meals[ws][i][slot]; dlg.close(); commit(); };
+  if (clr) clr.onclick = () => { if (o.onClear() !== false) { dlg.close(); commit(); } };
   form.onsubmit = (e) => {
     e.preventDefault();
     const items = read(), name = form.elements.mname.value.trim();
-    const day = ((db.meals[ws] ||= {})[i] ||= {});
-    if (!items.length && !name) delete day[slot]; else day[slot] = { name, items };
-    items.forEach((it) => { // remember foods
+    if (o.onSave(name, items, form) === false) return;
+    items.forEach((it) => { // remember foods for next time
       const ex = db.foods.find((x) => x.name.toLowerCase() === it.name.toLowerCase());
       const rec = { name: it.name, unit: it.unit, p: it.p, c: it.c, f: it.f, kcal: it.kcal, lastAmount: it.amount };
       if (ex) Object.assign(ex, rec); else db.foods.push({ id: uid(), ...rec });
@@ -137,8 +165,61 @@ function openMealEditor(ws, i, slot) {
   };
   dlg.showModal(); update();
 }
+function openMealEditor(ws, i, slot) {
+  const meal = getMeal(ws, i, slot) || { name: '', items: [] };
+  openFoodEditor({
+    title: `${DOW[i]} · ${slot}`, nameLabel: 'Meal name', namePlaceholder: 'e.g. Chicken rice bowl', name: meal.name, items: meal.items, recipePicker: true,
+    totalHtml: (m) => `<b>Meal total:</b> ${macroLine(m)}`,
+    onClear: meal.items.length || meal.name ? () => { if (db.meals[ws]?.[i]) delete db.meals[ws][i][slot]; } : null, clearLabel: 'Clear meal',
+    onSave: (name, items) => { const day = ((db.meals[ws] ||= {})[i] ||= {}); if (!items.length && !name) delete day[slot]; else day[slot] = { name, items }; },
+  });
+}
+function openRecipeEditor(r) {
+  openFoodEditor({
+    title: r ? 'Edit recipe' : 'New recipe', nameLabel: 'Recipe name', namePlaceholder: 'e.g. Mas huni', name: r?.name, items: r?.items || [],
+    extraTop: `<label class="field half"><span>Makes (servings)</span><input name="servings" type="number" min="1" step="1" inputmode="numeric" value="${esc(r?.servings ?? 1)}"></label>`,
+    extraBottom: `<label class="field"><span>Method / notes</span><textarea name="instructions" rows="3" placeholder="Steps, tips…">${esc(r?.instructions || '')}</textarea></label>`,
+    totalHtml: (m, form) => { const sv = num(form.elements.servings.value) || 1; return `<b>Whole recipe:</b> ${macroLine(m)}<br><b>Per serving (${sv}):</b> ${macroLine({ p: m.p / sv, c: m.c / sv, f: m.f / sv, kcal: m.kcal / sv })}`; },
+    onClear: r ? () => { if (!confirm('Delete this recipe?')) return false; db.recipes = db.recipes.filter((x) => x !== r); } : null, clearLabel: 'Delete recipe',
+    onSave: (name, items, form) => {
+      if (!name) { toast('Give the recipe a name'); return false; }
+      const rec = { name, items, servings: Math.max(1, num(form.elements.servings.value) || 1), instructions: form.elements.instructions.value.trim() };
+      if (r) Object.assign(r, rec); else db.recipes.push({ id: uid(), ...rec });
+    },
+  });
+}
+const recipeMacros = (r) => { const m = sumMacros(r.items.map(itemMacros)), sv = num(r.servings) || 1; return { p: m.p / sv, c: m.c / sv, f: m.f / sv, kcal: m.kcal / sv }; };
+function recipesView() {
+  if (!db.recipes.length) return `<div class="card">${empty('chef', 'Save your go-to recipes once — macros per serving are worked out from the ingredients. Then add them to any meal in one tap.<br><br><button class="btn primary" data-action="newRecipe">+ New recipe</button>')}</div>`;
+  return `<div class="grid">${[...db.recipes].sort((a, b) => a.name.localeCompare(b.name)).map((r) => `<div class="card clickable" data-action="editRecipe" data-id="${r.id}">
+    <h3>${hi('chef')} ${esc(r.name)}<span class="spacer"></span><span class="chip">${plural(num(r.servings) || 1, 'serving')}</span></h3>
+    <div class="small">Per serving: ${macroLine(recipeMacros(r))}</div>
+    <div class="small muted" style="margin-top:6px">${esc(r.items.map((x) => x.name).join(', '))}</div></div>`).join('')}</div>`;
+}
+/** Ask Claude for typical macros of foods that aren't in the built-in list. */
+async function estimateMacrosAI(foods) {
+  const Anthropic = await loadSdk();
+  const client = new Anthropic({ apiKey: getApiKey(), dangerouslyAllowBrowser: true });
+  const schema = { type: 'object', additionalProperties: false, required: ['foods'], properties: { foods: { type: 'array', items: {
+    type: 'object', additionalProperties: false, required: ['name', 'protein', 'carbs', 'fat', 'kcal'],
+    properties: { name: { type: 'string' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, kcal: { type: 'number' } } } } } };
+  const list = foods.map((f) => `- ${f.name}: ${per100(f.unit) ? `per 100 ${f.unit}` : `per 1 ${f.unit}`}`).join('\n');
+  let response;
+  try {
+    response = await client.beta.messages.create({
+      model: ROSTER_MODEL, max_tokens: 4000, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
+      output_config: { effort: 'low', format: { type: 'json_schema', schema } },
+      messages: [{ role: 'user', content: `Give typical nutrition values for these foods, in the same order, using the basis shown for each. Use common values for a home-cooked version where it's a dish. Grams of protein, carbs and fat, and kcal.\n${list}` }],
+    });
+  } catch (e) { throw new Error(rosterErrorMessage(e, Anthropic)); }
+  if (response.stop_reason === 'refusal') throw new Error('Claude couldn’t estimate these foods.');
+  return JSON.parse(response.content.filter((b) => b.type === 'text').map((b) => b.text).join('')).foods;
+}
 Object.assign(actions, {
   editMeal: (id) => { const [ws, i, s] = split(id); openMealEditor(ws, Number(i), s); },
+  newRecipe: () => openRecipeEditor(null),
+  editRecipe: (id) => openRecipeEditor(db.recipes.find((r) => r.id === id)),
+  mealTab: (k) => { state.mealTab = k; render(); },
   mealTargets: () => openForm({
     title: 'Daily macro targets', values: db.settings.targets,
     fields: [{ name: 'kcal', label: 'Calories (kcal)', type: 'number', half: true, min: 0 }, { name: 'p', label: 'Protein (g)', type: 'number', half: true, min: 0 },
