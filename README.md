@@ -50,6 +50,24 @@ A personal app that organises every part of your life in one place, in shades of
   - **Weekly goals**, plus daily study hours against a weekly target.
 - **Habits**, **Goals** and **Notes**.
 
+## More sections
+
+- **Weekly review**: a summary of each week covering tasks, shifts and hours, leave, sleep, water and mood, meds, prayers, Quran, study hours, revisions and spending. It also shows what's coming up next week and has space to reflect.
+- **Leave planner**: yearly allowances per leave type, leave that's planned, approved or taken, and the days left. Leave also shows on the duty roster.
+- **Prayer & Quran**:
+  - Tap each of the five daily prayers to mark it on time, late/qadha or missed. A month calendar and streaks show your progress, and qadha prayers are counted until made up. Period days logged in Cycle are marked as excused.
+  - Quran reading shows your current page, juz and streak, with an optional goal to finish by a date.
+- **Special dates**: birthdays and anniversaries with ages, gift ideas and reminders. They also appear on Today and the monthly calendar.
+- **Countdowns**: exams, events and upcoming trips, on Today and in the Study plan.
+- **Study revision reminders**: each time you mark a topic revised, it comes back for review after 1, 3, 7, 14, 30, 60 and 120 days.
+- **Savings goals** (Finances): a target, a deadline, deposits, and how much to put aside each month. A goal can be linked to a trip.
+- **Payday** (Finances): shows what's left until the next salary, after fixed monthly costs and what you've spent since payday.
+- **Recipes** (Meal prep): macros per serving are worked out from the ingredients. A built-in list of about 60 common foods fills in macros automatically, and AI can fill in the rest. A recipe can be added to any meal.
+- **Search**: the magnifier at the top searches everything.
+- **Menu sections**: hide sections you don't use (Settings).
+- **Google Drive backup**: automatic backup to your own Google Drive, plus restore. It needs a one-time Google setup (see Settings), and you reconnect with one tap about once an hour.
+- **Roster on-call rule**: a shift starting between midnight and 8 AM shows the previous day's on-call doctor.
+
 ## Reminders
 
 LifeOS shows a reminder (and a system notification, if you allow them) while the app is open, including in a background tab. For reminders that **always** reach you, even when LifeOS is closed, tap **Add to phone calendar** on any task, event, trip plan or duty week. This downloads a calendar file with the alert built in, and your phone's calendar does the reminding.

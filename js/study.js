@@ -4,6 +4,10 @@
 const TOPIC_STATUS = [['todo', 'To revise'], ['doing', 'Revising'], ['done', 'Confident']];
 const statusLabel = (k) => (TOPIC_STATUS.find((x) => x[0] === k) || TOPIC_STATUS[0])[1];
 const studyGoals = (ws) => db.study.goals[ws] || [];
+/** Spaced repetition: after each revision the topic comes back after a longer gap. */
+const REV_INTERVALS = [1, 3, 7, 14, 30, 60, 120];
+const nextReview = (x) => { const r = x.revisions || []; return r.length ? addDays(r.at(-1), REV_INTERVALS[Math.min(r.length - 1, REV_INTERVALS.length - 1)]) : null; };
+const revisionsDue = () => db.study.topics.filter((x) => { const n = nextReview(x); return n && n <= today(); }).sort((a, b) => nextReview(a).localeCompare(nextReview(b)));
 state.studyTab = 'topics';
 state.studyWeek = weekStart();
 state.topicFilter = 'all';
@@ -34,6 +38,7 @@ function studyTopics() {
         <div class="title">${esc(x.title)}</div>
         <div class="meta"><span class="chip status-${x.status}">${statusLabel(x.status)}</span>
           ${revs.length ? `<span>${icon('repeat')} Revised ${revs.length}× · last ${esc(relDay(last).toLowerCase())}</span>` : '<span>Not revised yet</span>'}
+          ${nextReview(x) ? `<span class="${nextReview(x) <= today() ? 'overdue' : ''}">${icon('bell')} ${nextReview(x) <= today() ? (nextReview(x) === today() ? 'Review due today' : `Review overdue ${daysBetween(nextReview(x), today())}d`) : `Next review ${esc(fmtDate(nextReview(x), { day: 'numeric', month: 'short' }))}`}</span>` : ''}
           ${x.due ? `<span class="${x.due < today() && x.status !== 'done' ? 'overdue' : ''}">${icon('calendar')} by ${esc(fmtDate(x.due, { day: 'numeric', month: 'short' }))}</span>` : ''}
           ${x.notes ? `<span>${icon('note')}</span>` : ''}</div>
       </div>
@@ -49,7 +54,13 @@ function studyTopics() {
     <div class="stat"><div class="label">Revising</div><div class="value">${count('doing')}</div></div>
     <div class="stat"><div class="label">Confident</div><div class="value">${done}</div>${bar(all.length ? (done / all.length) * 100 : 0, 'done')}</div>
   </div>
-  <div class="card">
+  ${(() => { const ex = db.countdowns.filter((c) => c.kind === 'exam' && c.date >= today()).sort((a, b) => a.date.localeCompare(b.date)); return `<div class="card"><h2>${hi('grad')} Exams<span class="spacer"></span><button class="btn sm" data-action="newCountdown" data-id="exam">+ Exam</button></h2>
+    ${ex.length ? countdownList(ex.map((c) => ({ ...c, action: 'editCountdown' }))) : '<div class="small muted">Add your exam dates to see a countdown here and on Today.</div>'}</div>`; })()}
+  ${(() => { const due = revisionsDue(); return due.length ? `<div class="card due-card" style="margin-top:14px"><h2>${hi('bell')} Due for revision<span class="spacer"></span><span class="chip trip-chip">${due.length}</span></h2>
+    <ul class="items">${due.map((x) => `<li class="item" style="align-items:center"><div class="body clickable" data-action="editTopic" data-id="${x.id}"><div class="title">${esc(x.title)}</div>
+      <div class="meta">${x.subject ? `<span>${esc(x.subject)}</span>` : ''}<span class="${nextReview(x) < today() ? 'overdue' : ''}">${nextReview(x) === today() ? 'Due today' : `${daysBetween(nextReview(x), today())}d overdue`}</span><span>revised ${(x.revisions || []).length}×</span></div></div>
+      <button class="btn sm primary" data-action="topicRevised" data-id="${x.id}">${icon('check')} Revised</button></li>`).join('')}</ul></div>` : ''; })()}
+  <div class="card" style="margin-top:14px">
     <form class="quick-add topic-add" data-form="addTopic">
       <input name="title" placeholder="Add a topic to revise… (start with ! for priority)" autocomplete="off" aria-label="Topic">
       <input name="subject" placeholder="Subject" list="subject-list" autocomplete="off" aria-label="Subject" value="${esc(sub)}">
@@ -66,7 +77,7 @@ function studyTopics() {
       ${bar((gd / xs.length) * 100, 'done')}
       <ul class="items" style="margin-top:8px">${xs.sort((a, b) => order[a.status] - order[b.status] || (!!b.important - !!a.important) || (a.due || '9999').localeCompare(b.due || '9999')).map(item).join('')}</ul></div>`;
   }).join('') : `<div class="card" style="margin-top:14px">${empty('layers', all.length ? 'No topics match this filter.' : 'Add the topics you need to revise. Group them by subject, log each revision and mark them confident when you know them well.')}</div>`}
-  <p class="hint">Tap <b>Revised</b> each time you go over a topic. Tick the box when you feel confident. Tap a topic to change its status, deadline or notes.</p>`;
+  <p class="hint">Tap <b>Revised</b> each time you go over a topic — it comes back for review after 1, 3, 7, 14, 30, 60 and 120 days so it sticks. Tick the box when you feel confident. Tap a topic to change its status, deadline or notes.</p>`;
 }
 function topicForm(x) {
   openForm({
@@ -94,7 +105,7 @@ Object.assign(actions, {
     const x = topic(id);
     (x.revisions ||= []).push(today());
     if (x.status === 'todo') x.status = 'doing';
-    commit(); toast(`Revision logged · ${plural(x.revisions.length, 'time')} so far`);
+    commit(); toast(`Revision logged · next review ${relDay(nextReview(x)).toLowerCase()}`);
   },
 });
 changes.topicSubject = (el) => { state.topicSubject = el.value; render(); };

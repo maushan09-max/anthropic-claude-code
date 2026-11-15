@@ -95,7 +95,10 @@ const defaults = () => ({
   tasks: [], events: [], habits: [], goals: [], transactions: [], budgets: {}, health: {}, journal: [], notes: [], lists: [],
   meals: {}, foods: [], body: [], cycle: {}, poop: {}, meds: [], accounts: [], loans: [], roster: {}, dutyTypes: null, trips: [], fired: {},
   study: { topics: [], goals: {}, hours: {}, target: 10 },
-  settings: { name: '', rosterName: 'Dr Maushan', currency: 'MVR', theme: 'auto', usdRate: 15.42, targets: { kcal: 2000, p: 120, c: 200, f: 65 } },
+  prayer: { log: {}, qadhaDone: 0 }, quran: { page: 0, goalDate: '', log: {}, khatams: 0 },
+  dates: [], countdowns: [], leave: { allowances: {}, entries: [] }, savingsGoals: [],
+  payday: { salary: null, day: 25, commitments: [] }, recipes: [], reviews: {},
+  settings: { name: '', rosterName: 'Dr Maushan', hidden: [], gdrive: {}, currency: 'MVR', theme: 'auto', usdRate: 15.42, targets: { kcal: 2000, p: 120, c: 200, f: 65 } },
 });
 function migrate(d) {
   const base = defaults();
@@ -151,7 +154,12 @@ function load() {
   return migrate({});
 }
 let db = load();
-function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast('Could not save: ' + e.message); } }
+const afterSave = [];
+/** Save to this device. quiet = don't trigger after-save hooks (e.g. automatic Google Drive backup). */
+function save(quiet) {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast('Could not save: ' + e.message); return; }
+  if (!quiet) afterSave.forEach((fn) => { try { fn(); } catch (e) { console.warn(e); } });
+}
 /** Ask the browser to keep LifeOS data permanently (not cleared automatically when the phone is low on space). */
 const requestPersistentStorage = () => (navigator.storage?.persist ? navigator.storage.persisted().then((p) => p || navigator.storage.persist()).catch(() => false) : Promise.resolve(false));
 const remove = (coll, id) => { db[coll] = db[coll].filter((x) => x.id !== id); };
@@ -465,6 +473,7 @@ function upcomingReminderItems() {
   const out = [];
   db.tasks.forEach((t) => { if (!t.done && t.due) out.push({ item: t, date: t.due, kind: 'Task' }); });
   db.events.forEach((e) => { if (hasReminder(e)) for (let i = -1; i <= 8; i++) { const d = addDays(today(), i); if (occursOn(e, d)) out.push({ item: e, date: d, kind: 'Event' }); } });
+  (db.dates || []).forEach((x) => { if (x.remind !== '' && x.remind != null && x.date) { const d = nextOccurrence(x.date.slice(5)); out.push({ item: { id: x.id, title: specialLabel(x), time: '09:00', remind: String(Number(x.remind) * 1440) }, date: d, kind: 'Special date' }); } });
   db.trips.forEach((tr) => {
     (tr.items || []).forEach((it) => it.date && out.push({ item: it, date: it.date, kind: tr.name }));
     (tr.legs || []).forEach((l) => l.departDate && out.push({ item: { id: l.id, title: `${l.from || '?'} → ${l.to || '?'}${l.number ? ' · ' + l.number : ''}`, time: l.departTime, remind: l.remind, location: l.from, important: true }, date: l.departDate, kind: `${tr.name} · ${l.mode === 'train' ? 'Train' : 'Flight'}` }));

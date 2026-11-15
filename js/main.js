@@ -2,13 +2,14 @@
 /* Navigation, rendering and global event wiring. Loaded last. */
 
 const NAV = [
-  ['Planner', [['today', 'Today', 'sun'], ['weekly', 'Weekly to-do', 'calWeek'], ['monthly', 'Monthly to-do', 'calendar'], ['duties', 'Duty roster', 'badge']]],
+  ['Planner', [['today', 'Today', 'sun'], ['review', 'Weekly review', 'chart'], ['weekly', 'Weekly to-do', 'calWeek'], ['monthly', 'Monthly to-do', 'calendar'], ['duties', 'Duty roster', 'badge'], ['leave', 'Leave planner', 'palm']]],
   ['Home & health', [['meals', 'Meal prep', 'bowl'], ['shopping', 'Shopping list', 'cart'], ['health', 'Health', 'heart']]],
   ['Money & travel', [['finances', 'Finances', 'wallet'], ['travel', 'Travel plans', 'plane']]],
-  ['Personal', [['journal', 'Journal', 'book'], ['study', 'Study plan', 'grad'], ['habits', 'Habits', 'repeat'], ['goals', 'Goals', 'target'], ['notes', 'Notes', 'note']]],
+  ['Personal', [['journal', 'Journal', 'book'], ['faith', 'Prayer & Quran', 'moonStar'], ['study', 'Study plan', 'grad'], ['dates', 'Special dates', 'gift'], ['habits', 'Habits', 'repeat'], ['goals', 'Goals', 'target'], ['notes', 'Notes', 'note']]],
   ['', [['settings', 'Settings', 'sliders']]],
 ];
-const VIEWS = NAV.flatMap((g) => g[1]);
+const VIEWS = [...NAV.flatMap((g) => g[1]), ['search', 'Search', 'search']];
+const ALWAYS_SHOWN = ['today', 'settings'];
 const ALIASES = { tasks: 'weekly', calendar: 'monthly', money: 'finances', lists: 'shopping' };
 
 const currentView = () => {
@@ -27,8 +28,10 @@ function render() {
     weekly: db.tasks.filter((x) => isWeekly(x) && !x.done && x.due && x.due <= t).length,
     monthly: db.tasks.filter((x) => isMonthly(x) && !x.done && x.due && x.due <= t).length,
     shopping: db.lists.reduce((s, l) => s + l.items.filter((i) => !i.done && i.important).length, 0),
+    study: revisionsDue().length,
   };
-  $('#nav').innerHTML = NAV.map(([group, items]) => `${group ? `<div class="nav-group">${group}</div>` : '<div class="nav-sep"></div>'}
+  const hidden = db.settings.hidden || [];
+  $('#nav').innerHTML = NAV.map(([group, all]) => [group, all.filter(([k]) => ALWAYS_SHOWN.includes(k) || !hidden.includes(k) || k === v)]).filter(([, items]) => items.length).map(([group, items]) => `${group ? `<div class="nav-group">${group}</div>` : '<div class="nav-sep"></div>'}
     ${items.map(([k, label, ico]) => `<a href="#/${k}" class="${k === v ? 'active' : ''}"><span class="ico">${icon(ico)}</span>${label}${badges[k] ? `<span class="badge">${badges[k]}</span>` : ''}</a>`).join('')}`).join('');
   const meta = VIEWS.find((x) => x[0] === v);
   const title = v === 'travel' && state.tripId && find('trips', state.tripId) ? find('trips', state.tripId).name : meta[1];
@@ -88,7 +91,7 @@ $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') e.ta
 window.addEventListener('hashchange', () => {
   if (currentView() !== 'travel') state.tripId = null;
   document.body.classList.remove('nav-open');
-  render(); $('#main').focus({ preventScroll: true }); window.scrollTo(0, 0);
+  render(); if (currentView() === 'search') $('#global-search')?.focus(); else $('#main').focus({ preventScroll: true }); window.scrollTo(0, 0);
 });
 window.addEventListener('storage', (e) => { if (e.key === KEY) { db = load(); render(); } }); // sync across tabs
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkReminders(); if (today() !== lastDay) rollover(); } });

@@ -591,3 +591,40 @@ dialog:has(.roster-review) { width: min(760px, calc(100vw - 16px)); }
 .leg .meta span { display: inline-flex; align-items: center; gap: 4px; }
 .leg .meta .ic { width: 13px; height: 13px; }
 
+
+/* ===== v7: search, prayer, quran, dates, payday, menu ===== */
+.search-btn { margin-left: auto; }
+.topbar h1 { flex: 0 1 auto; }
+.topbar-actions { margin-left: 4px; }
+.search-box { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 12px; padding: 4px 12px; background: var(--surface); }
+.search-box .ic { color: var(--accent); width: 20px; height: 20px; }
+.search-box input { border: none !important; outline: none !important; padding: 8px 0; }
+.prayers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.prayer-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--muted); min-width: 0; }
+.prayer-btn b { color: var(--text); font-size: 13px; }
+.prayer-btn small { font-size: 10px; }
+.prayer-btn .pb-ic .ic { width: 18px; height: 18px; }
+.prayer-btn.on { background: var(--grad); border-color: transparent; color: #fff; }
+.prayer-btn.on b { color: #fff; }
+.prayer-btn.late { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.prayer-btn.missed { background: var(--pink-soft); border-color: var(--bad); color: var(--bad); }
+.prayer-btn:disabled { opacity: .4; }
+.pr-full { background: color-mix(in srgb, var(--accent) 30%, var(--surface)) !important; }
+.pr-part { background: var(--pink-soft) !important; }
+.pr-none { background: var(--surface-2) !important; }
+.pr-excused { background: repeating-linear-gradient(45deg, #fbcfe5 0 4px, transparent 4px 8px) !important; }
+.pr-count { font-size: 11px; font-weight: 700; color: var(--accent); }
+.quran-hero, .payday-hero { display: flex; gap: 18px; align-items: center; }
+.q-ring { width: 86px; height: 86px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; background: conic-gradient(var(--accent-2) calc(var(--p) * 1%), var(--surface-2) 0); }
+.q-ring span { width: 66px; height: 66px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-weight: 700; color: var(--accent); }
+.payday-hero .cycle-ring span:last-child { font-size: 11px; }
+.cd-days { color: var(--accent-2); white-space: nowrap; font-size: 14px; }
+.menu-toggles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.menu-toggles .ic { width: 16px; height: 16px; color: var(--accent); }
+.recipe-pick { display: flex; gap: 6px; align-items: center; width: 100%; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; background: var(--grad-soft); }
+.recipe-pick select { flex: 1; min-width: 160px; }
+.recipe-pick .rp-serv { width: 70px !important; }
+details.setup ol { padding-left: 18px; line-height: 1.6; }
+details.setup code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; font-size: 12px; word-break: break-all; }
+.due-card { border-color: var(--accent-2); }
+@media (max-width: 420px) { .prayer-btn small { display: none; } }
