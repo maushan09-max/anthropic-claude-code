@@ -53,7 +53,8 @@ const MED_SLOTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['night',
 const WATER_GOAL = 8;
 
 // ---------- Travel data (needed by the migration below) ----------
-const PACK_TEMPLATE = [
+/** Maushan's own packing list — the default for her existing copy of the app. */
+const PERSONAL_PACK = [
   ['Luggage', ['Clothes', 'Shawl', 'Pins', 'Others (socks, bra, undies, shapewear, tights)',
     'Toiletries (shower gel, shampoo, conditioner, face wash, toothbrush, toothpaste, cotton buds)',
     'Hair (extra hair band, hair dryer, heat protectant, Livon)', 'Body mist and perfume', 'Deodorant', 'Lotion',
@@ -64,6 +65,14 @@ const PACK_TEMPLATE = [
     'Hand bidet', 'Neck pillow', 'Hair band', 'Small mirror', 'Pen', 'Mask', 'Meds (Panadol, Pantaz, Emeset, balm)', 'Snacks', 'Supari',
     'Scale', 'Plastic wrap', 'Scissor', 'Phone cover', 'Lint roller']],
   ['Bag while on vacation', ['Passport', 'Power bank', 'Wallet', 'Sanitary (wet tissue, dry tissue, sanitiser, toilet cover, pad)', 'Shades', 'Supari', 'Pen', 'Small mirror']],
+];
+/** General packing list for new users (same three groups). */
+const PACK_TEMPLATE = [
+  ['Luggage', ['Clothes', 'Underwear & socks', 'Sleepwear', 'Shoes and sandals', 'Toiletries (toothbrush, toothpaste, shampoo, shower gel, face wash)',
+    'Skincare & make-up', 'Hair care (brush, hair ties, hair dryer)', 'Deodorant & perfume', 'Medications', 'Chargers & adapters']],
+  ['Backpack while travelling', ['Passport / ID', 'Tickets & bookings', 'Wallet & cards', 'Phone & charger', 'Power bank', 'Headphones',
+    'Documents', 'Medications', 'Tissues & hand sanitiser', 'Snacks', 'Water bottle', 'Neck pillow']],
+  ['Bag while on vacation', ['Passport / ID copy', 'Wallet', 'Phone', 'Power bank', 'Sunglasses', 'Sunscreen', 'Tissues & hand sanitiser']],
 ];
 /** A fresh, unticked packing list from the user's saved template (or the default one). */
 const packingFrom = (tpl) => (tpl || PACK_TEMPLATE).flatMap(([cat, items]) => items.map((text) => ({ id: uid(), cat, text, done: false })));
@@ -94,12 +103,20 @@ const defaults = () => ({
   tasks: [], events: [], habits: [], goals: [], transactions: [], budgets: {}, health: {}, journal: [], notes: [], lists: [],
   meals: {}, foods: [], body: [], cycle: {}, poop: {}, meds: [], accounts: [], loans: [], roster: {}, dutyTypes: null, trips: [], fired: {},
   study: { topics: [], goals: {}, hours: {}, target: 10 },
-  settings: { name: '', rosterName: 'Dr Maushan', currency: 'MVR', theme: 'auto', usdRate: 15.42, targets: { kcal: 2000, p: 120, c: 200, f: 65 } },
+  settings: { name: '', rosterName: '', onboarded: false, currency: 'MVR', theme: 'auto', usdRate: 15.42, targets: { kcal: 2000, p: 120, c: 200, f: 65 } },
 });
-function migrate(d) {
+/** fresh = a brand-new install (no saved data): show the welcome screen and start without anyone's personal setup. */
+function migrate(d, fresh = false) {
   const base = defaults();
   const out = { ...base, ...d, settings: { ...base.settings, ...(d.settings || {}) } };
   out.settings.targets = { ...base.settings.targets, ...(d.settings?.targets || {}) };
+  if (fresh) out.settings.tripsSeeded = true; // new users don't get the Umrah / China trips
+  else {
+    // Existing copies (Maushan's) keep their personal setup and never see the welcome screen
+    if (d.settings?.onboarded === undefined) out.settings.onboarded = true;
+    if (d.settings?.rosterName === undefined) out.settings.rosterName = 'Dr Maushan';
+    if (!d.settings?.packTemplate) out.settings.packTemplate = PERSONAL_PACK;
+  }
   const ws = weekStart();
   out.tasks.forEach((t) => {
     if (t.important === undefined) t.important = t.priority === 'high';
@@ -138,11 +155,21 @@ function migrate(d) {
   return out;
 }
 function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) return migrate(JSON.parse(raw)); } catch (e) { console.warn('Load failed', e); }
-  return migrate({});
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) { console.warn('Storage unavailable', e); }
+  if (raw) {
+    try { return migrate(JSON.parse(raw)); } catch (e) {
+      console.warn('Saved data could not be read', e);
+      try { localStorage.setItem(KEY + '.unreadable-' + Date.now(), raw); } catch { /* keep going */ } // never silently lose data
+      return migrate({});
+    }
+  }
+  return migrate({}, true);
 }
 let db = load();
 function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast('Could not save: ' + e.message); } }
+/** Ask the browser to keep LifeOS data permanently (not cleared automatically when the phone is low on space). */
+const requestPersistentStorage = () => (navigator.storage?.persist ? navigator.storage.persisted().then((p) => p || navigator.storage.persist()).catch(() => false) : Promise.resolve(false));
 const remove = (coll, id) => { db[coll] = db[coll].filter((x) => x.id !== id); };
 const find = (coll, id) => db[coll].find((x) => x.id === id);
 const clone = (o) => JSON.parse(JSON.stringify(o));

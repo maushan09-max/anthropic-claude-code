@@ -31,7 +31,7 @@ const hotelCost = (tr) => tr.hotels.reduce((s, h) => s + (Number(h.cost) || 0), 
 const expenseTotal = (tr) => tr.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
 const nights = (h) => (h.checkin && h.checkout && h.checkout > h.checkin ? daysBetween(h.checkin, h.checkout) : 0);
 const splitDetail = (text) => { const m = text.match(/^(.*?)\s*\((.*)\)\s*$/); return m ? [m[1], m[2]] : [text, '']; };
-const packCats = (tr) => { const order = PACK_TEMPLATE.map((c) => c[0]); return [...new Set([...order, ...tr.packing.map((p) => p.cat)])].filter((c) => order.includes(c) || tr.packing.some((p) => p.cat === c)); };
+const packCats = (tr) => { const order = (db.settings.packTemplate || PACK_TEMPLATE).map((c) => c[0]); return [...new Set([...order, ...tr.packing.map((p) => p.cat)])].filter((c) => order.includes(c) || tr.packing.some((p) => p.cat === c)); };
 
 views.travel = () => {
   const tr = state.tripId && find('trips', state.tripId);
