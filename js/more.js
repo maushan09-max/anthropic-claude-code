@@ -229,7 +229,7 @@ Object.assign(actions, {
   },
   resetData: () => {
     if (confirm('Erase ALL LifeOS data on this device? Export a backup first if unsure.') && confirm('Really erase everything? This cannot be undone.')) {
-      db = migrate({}, true); commit(); toast('All data erased'); openWelcome();
+      db = migrate({}); commit(); toast('All data erased');
     }
   },
 });
@@ -260,28 +260,3 @@ afterRender.push((v) => {
   const done = (p) => { if (el.isConnected) el.textContent = `${size} · ${p ? 'kept permanently' : 'may be cleared if the phone runs low on space'}`; };
   navigator.storage?.persisted ? navigator.storage.persisted().then(done, () => done(false)) : done(false);
 });
-
-// ---------- Welcome screen for new users ----------
-const WELCOME_CURRENCIES = ['MVR', 'USD', 'EUR', 'GBP', 'INR', 'LKR', 'PKR', 'BDT', 'AED', 'SAR', 'MYR', 'SGD', 'AUD', 'CAD'];
-function openWelcome() {
-  const dlg = $('#modal');
-  dlg.innerHTML = `<form class="form welcome" novalidate>
-    <div class="welcome-hero"><span class="logo">${icon('logo')}</span>
-      <h2>Welcome to LifeOS</h2>
-      <p class="muted">Tasks, health, money, travel, study and more — in one private app. Everything you add is saved on this phone only.</p></div>
-    <label class="field"><span>Your name</span><input name="name" placeholder="For your greeting" autocomplete="given-name"></label>
-    <label class="field half"><span>Currency for spending</span><select name="currency">${WELCOME_CURRENCIES.map((c) => `<option>${c}</option>`).join('')}</select></label>
-    <label class="field half"><span>Name on your duty roster (optional)</span><input name="rosterName" placeholder="e.g. Dr Ahmed"></label>
-    <div class="small muted" style="width:100%">If you work shifts, LifeOS can find your duties on a photo of the roster. Leave it empty if you don’t need this — you can change everything later in Settings.</div>
-    <div class="row end form-actions">
-      <label class="btn ghost">${icon('upload')} Restore a backup<input type="file" accept="application/json,.json" data-welcome-import hidden></label>
-      <span class="grow"></span><button type="button" class="btn ghost" data-skip>Skip</button><button type="submit" class="btn primary">Get started</button></div>
-  </form>`;
-  const form = $('form', dlg);
-  const finish = (v) => { Object.assign(db.settings, v, { onboarded: true }); if (dlg.open) dlg.close(); commit(); requestPersistentStorage(); };
-  form.onsubmit = (e) => { e.preventDefault(); finish({ name: form.elements.name.value.trim(), currency: form.elements.currency.value, rosterName: form.elements.rosterName.value.trim() }); };
-  $('[data-skip]', form).onclick = () => finish({});
-  $('[data-welcome-import]', form).onchange = (e) => changes.importData(e.target);
-  dlg.addEventListener('close', () => { if (!db.settings.onboarded) { db.settings.onboarded = true; save(); } }, { once: true });
-  dlg.showModal();
-}

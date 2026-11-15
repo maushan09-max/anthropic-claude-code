@@ -112,4 +112,4 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) naviga
 
 render();
 checkReminders();
-if (!db.settings.onboarded) openWelcome(); else requestPersistentStorage();
+requestPersistentStorage();

@@ -70,16 +70,12 @@ python3 -m http.server 8000
 - **Where it's stored:** only on your device, inside the browser storage of the installed app. Your notes, tasks and health records use `localStorage`, and roster photos use `IndexedDB`. Nothing is sent to GitHub or any server. The only exception is roster reading: the photo is sent to Anthropic, using your own API key.
 - **Permanent storage:** LifeOS asks the browser to keep its storage permanently, so it isn't cleared automatically when space runs low. **Settings → Backup & restore** shows whether it's protected and how much space your data uses.
 - **Backups:** **Settings → Export backup** creates one file containing everything except roster photos and your API key. On a phone it opens the share sheet, so you can save it to Files, iCloud Drive or Google Drive, or email it to yourself. **Today** reminds you if your last backup was more than two weeks ago.
-- **Restoring or moving to a new phone:** install LifeOS on the new device, then tap **Restore a backup** on the welcome screen, or use **Settings → Import backup**.
+- **Restoring or moving to a new phone:** install LifeOS on the new device, then use **Settings → Import backup**.
 - **Ways to lose data without a backup:**
   - deleting the Home Screen app
   - clearing the browser's website data
   - losing the phone
 - **Damaged data is kept:** if the saved data ever can't be read, LifeOS keeps a copy of it instead of overwriting it.
-
-## New users
-
-Someone opening LifeOS for the first time sees a welcome screen. It asks for their name, their currency and, optionally, the name on their duty roster. They can also restore a backup from there. New users start with a general packing list and no trips. Existing copies keep their own settings, trips and packing list.
 
 ## Keyboard shortcuts
 

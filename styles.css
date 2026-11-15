@@ -591,9 +591,3 @@ dialog:has(.roster-review) { width: min(760px, calc(100vw - 16px)); }
 .leg .meta span { display: inline-flex; align-items: center; gap: 4px; }
 .leg .meta .ic { width: 13px; height: 13px; }
 
-/* ===== Welcome ===== */
-.welcome-hero { width: 100%; text-align: center; display: grid; justify-items: center; gap: 6px; padding: 6px 0 4px; }
-.welcome-hero .logo { width: 56px; height: 56px; border-radius: 18px; }
-.welcome-hero .logo .ic { width: 30px; height: 30px; }
-.welcome-hero h2 { margin: 6px 0 0; font-size: 22px; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.welcome-hero p { margin: 0; }
