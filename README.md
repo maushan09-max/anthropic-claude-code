@@ -9,7 +9,6 @@ A personal app that organises every part of your life in one place, in shades of
 - **Weekly to-do**
   - Seven day cards, **Sunday to Saturday**, plus a separate **Anytime this week** list. The week starts fresh every Sunday, and unfinished tasks can be moved into the new week.
   - Ticked tasks are crossed out. Tap the star (or start a quick-add with `!`) to **highlight a priority** task.
-  - Your duty and the on-call doctor show on each day.
 - **Monthly to-do**: a **separate list from the weekly to-do**.
   - Opens on a month calendar. Tap a day to add tasks or events to it.
   - A **general to-do for the month** holds things that can be done any time that month.
@@ -36,7 +35,13 @@ A personal app that organises every part of your life in one place, in shades of
   - **Savings** in **MVR and USD**, with combined totals at an exchange rate you can change.
   - **Loans taken and given**, with repayments and due dates.
   - **Spending** and budgets.
-- **Travel plans**: day-by-day **itineraries**, a packing list, and export to your phone calendar.
+- **Travel plans**: comes with **Umrah (Dec 2026)** and **China (Mar 2027)** ready to fill in. Each trip has five tabs:
+  - **Flights & trains**: departure and arrival airports or stations, dates and times, airline, flight number, booking reference, seat, cost and a reminder.
+  - **Hotels**: check-in and check-out, number of nights, address, phone, booking reference and cost.
+  - **Itinerary**: day by day, with flights and hotel check-ins and check-outs shown on the right days.
+  - **Packing list**: starts with your own list in three groups: Luggage, Backpack while travelling, and Bag while on vacation. Tick items off, add your own, untick everything for the next trip, or save a list as your default for new trips.
+  - **Budget & expenses**: set a budget in the trip's currency. Flight and hotel costs are counted automatically, and you log spending as you go, broken down by category.
+  - The whole trip can be exported to your phone calendar.
 
 ### Personal
 - **Journal** with mood and a daily prompt.

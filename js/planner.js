@@ -31,7 +31,7 @@ views.today = () => {
   const h = healthOf(t);
   const shop = db.lists.flatMap((l) => l.items.filter((i) => !i.done).map((i) => ({ ...i, list: l })));
   const shopTop = shop.sort((a, b) => !!b.important - !!a.important).slice(0, 6);
-  const trip = db.trips.filter((x) => (x.end || x.start || '') >= t).sort((a, b) => (a.start || '').localeCompare(b.start || ''))[0];
+  const trip = nextTrip();
   const sv = savingsTotals(), lo = loanTotals();
   const jToday = db.journal.find((j) => j.date === t);
   const sg = studyGoals(ws), sgDone = sg.filter((g) => g.done).length;
@@ -119,7 +119,6 @@ views.weekly = () => {
     return `<div class="card day-card ${d === t ? 'is-today' : ''} ${d < t ? 'past' : ''}">
       <h3><span>${DOW[i]}</span><span class="muted small">${esc(fmtDate(d, { month: 'short', day: 'numeric' }))}</span>${d === t ? '<span class="chip today-chip">Today</span>' : ''}
         <span class="spacer"></span><span class="small muted">${list.length ? `${list.filter((x) => x.done).length}/${list.length}` : ''}</span></h3>
-      ${dutyBlock(d)}
       <ul class="items">${list.map((x) => taskItem(x)).join('')}</ul>
       <form class="quick-add" data-form="quickTask" data-id="${d}"><input name="title" placeholder="Add task…" autocomplete="off" aria-label="Add task for ${DOW[i]}"><button class="btn sm" aria-label="Add">+</button></form>
     </div>`;
