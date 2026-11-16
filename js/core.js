@@ -169,7 +169,7 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 // ---------- UI state & registries (extended by the other modules) ----------
 const state = {
   week: weekStart(), calMonth: today().slice(0, 7), calDay: today(), monthFilter: 'all',
-  moneyMonth: today().slice(0, 7), healthDay: today(), healthTab: 'daily', healthMonth: today().slice(0, 7),
+  moneyMonth: today().slice(0, 7), healthDay: today(), healthTab: 'body', healthMonth: today().slice(0, 7),
   financeTab: 'savings', mealWeek: weekStart(), rosterWeek: weekStart(), tripId: null,
   journalQuery: '', noteQuery: '',
 };

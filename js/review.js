@@ -24,8 +24,6 @@ function searchIndex() {
   db.accounts.forEach((a) => add('bank', a.name, `Savings · ${fmtCur(a.balance, a.currency)}`, 'goFinance', 'savings', a.notes));
   db.transactions.forEach((t) => add('receipt', t.note || t.category, `${t.type === 'income' ? 'Income' : 'Expense'} · ${money(t.amount)} · ${fmtDate(t.date)}`, 'editTx', t.id, t.category));
   db.meds.forEach((m) => add('pill', m.name, `Medication${m.dose ? ' · ' + m.dose : ''}`, 'editMed', m.id, m.notes));
-  db.habits.forEach((h) => add('repeat', h.name, 'Habit', 'editHabit', h.id));
-  db.goals.forEach((g) => add('target', g.title, 'Goal', 'editGoal', g.id, g.why));
   db.leave.entries.forEach((e) => add('palm', `${e.type} leave`, `${fmtDate(e.start)}${e.end && e.end !== e.start ? ' – ' + fmtDate(e.end) : ''}`, 'editLeave', e.id, e.notes));
   Object.entries(db.roster).forEach(([ws, r]) => Object.entries(r.days || {}).forEach(([i, l]) => l.forEach((x) => {
     const d = addDays(ws, Number(i));
@@ -65,8 +63,6 @@ function weekStats(ws) {
   const mTasks = db.tasks.filter((x) => isMonthly(x) && inWeek(x.due));
   const r = rosterGet(ws);
   const duties = Object.values(r.days || {}).flat().filter((x) => !/off/i.test(x.title));
-  const h = past.map((d) => healthOf(d));
-  const nums = (k) => h.map((x) => Number(x[k])).filter((n) => n > 0);
   const medExp = past.reduce((s, d) => s + db.meds.reduce((a, m) => a + medExpected(m, d), 0), 0);
   const medGot = past.reduce((s, d) => s + db.meds.reduce((a, m) => a + (medExpected(m, d) ? medTakenCount(m, d) : 0), 0), 0);
   const prDays = past.filter(prayerCountable);
@@ -76,7 +72,6 @@ function weekStats(ws) {
     tasksDone: wTasks.filter((x) => x.done).length + mTasks.filter((x) => x.done).length, tasksAll: wTasks.length + mTasks.length,
     shifts: duties.length, hours: duties.reduce((s, x) => s + dutyHours(x), 0),
     leave: days.filter((d) => leaveOn(d)).length,
-    sleep: avg(nums('sleep')), water: avg(nums('water')), mood: avg(nums('mood')), exercise: nums('exercise').reduce((a, b) => a + b, 0),
     meds: medExp ? Math.round((medGot / medExp) * 100) : null,
     prayers: prDays.length ? Math.round((prDays.reduce((s, d) => s + prayedCount(d), 0) / (prDays.length * 5)) * 100) : null,
     quran: days.reduce((s, d) => s + Number(db.quran.log[d] || 0), 0),
@@ -112,8 +107,6 @@ views.review = () => {
   </div>
   <div class="section-title">${icon('heart')} Health & faith</div>
   <div class="stats">
-    ${tile('Avg sleep', fmt1(s.sleep, '<small> h</small>'))}${tile('Avg water', fmt1(s.water, '<small> glasses</small>'))}
-    ${tile('Avg mood', s.mood == null ? '–' : MOODS[Math.round(s.mood) - 1], s.mood == null ? '' : `${round1(s.mood)} / 5`)}${tile('Exercise', `${s.exercise}<small> min</small>`)}
     ${s.meds != null ? tile('Meds taken', `${s.meds}%`) : ''}${s.prayers != null ? tile('Prayers', `${s.prayers}%`) : ''}${tile('Quran', `${s.quran}<small> pages</small>`)}
   </div>
   <div class="section-title">${icon('grad')} Study & money</div>

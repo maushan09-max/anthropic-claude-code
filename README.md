@@ -24,7 +24,6 @@ A personal app that organises every part of your life in one place, in shades of
 - **Meal prep**: Sunday to Saturday, with Breakfast, Lunch, Dinner and Snacks. Calculates protein, carbs, fat and calories for each meal, day and week against your targets. Foods are remembered, and the week's ingredients can be sent to the shopping list.
 - **Shopping list**: bought items are crossed out, and priority items are highlighted and sorted to the top.
 - **Health** (in tabs)
-  - **Daily**: mood, water, sleep, exercise, steps and notes, with trend charts.
   - **Body**: **weight, waist, arms and hips**. Each has its own trend graph, and a combined graph shows how **all measurements** have changed since your first entry. Also shows your waist-to-hip ratio.
   - **Cycle**: a month calendar showing **which day of your cycle** each date is, a "Day X of your cycle" summary with the current phase, the predicted next period and the fertile window.
   - **Poop**: a month calendar. Select a day to see **how many times**, the **consistency of each one** (Bristol scale), and **whether you took a laxative** (and which one).
@@ -48,11 +47,11 @@ A personal app that organises every part of your life in one place, in shades of
 - **Study plan**
   - **Topics to revise**, grouped by subject. Each topic has a status (To revise, Revising, Confident), a revision log, an optional deadline and a priority highlight.
   - **Weekly goals**, plus daily study hours against a weekly target.
-- **Habits**, **Goals** and **Notes**.
+- **Notes**.
 
 ## More sections
 
-- **Weekly review**: a summary of each week covering tasks, shifts and hours, leave, sleep, water and mood, meds, prayers, Quran, study hours, revisions and spending. It also shows what's coming up next week and has space to reflect.
+- **Weekly review**: a summary of each week covering tasks, shifts and hours, leave, meds, prayers, Quran, study hours, revisions and spending. It also shows what's coming up next week and has space to reflect.
 - **Leave planner**: yearly allowances per leave type, leave that's planned, approved or taken, and the days left. Leave also shows on the duty roster.
 - **Prayer & Quran**:
   - Tap each of the five daily prayers to mark it on time, late/qadha or missed. A month calendar and streaks show your progress, and qadha prayers are counted until made up. Period days logged in Cycle are marked as excused.
@@ -110,7 +109,7 @@ python3 -m http.server 8000
 | `js/life.js` | Meal prep, Shopping list, Health |
 | `js/money.js` | Savings, Loans, Spending |
 | `js/travel.js` | Travel itineraries and packing |
-| `js/more.js` | Journal, Habits, Goals, Notes, Settings |
+| `js/more.js` | Journal, Notes, Settings |
 | `js/roster-ai.js` | Reads roster photos with Claude and fills in your duties |
 | `js/vendor/anthropic-sdk.mjs` | Anthropic TypeScript SDK 1.3.0, bundled for the browser with esbuild (licence in `js/vendor/`) |
 | `js/study.js` | Study plan: topics to revise, weekly goals, study hours |

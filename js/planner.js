@@ -37,7 +37,6 @@ views.today = () => {
   const dm = dayMacros(ws, di);
   const T = db.settings.targets;
   const meds = db.meds.filter((m) => m.active !== false);
-  const h = healthOf(t);
   const shop = db.lists.flatMap((l) => l.items.filter((i) => !i.done).map((i) => ({ ...i, list: l })));
   const shopTop = shop.sort((a, b) => !!b.important - !!a.important).slice(0, 6);
   const trip = nextTrip();
@@ -98,14 +97,6 @@ views.today = () => {
       ${toRevise.length ? `<div class="section-title">Next to revise</div><ul class="items">${toRevise.map((x) => `<li class="item ${x.important ? 'important' : ''}"><div class="body"><div class="title">${esc(x.title)}</div>${x.subject ? `<div class="meta"><span>${esc(x.subject)}</span></div>` : ''}</div></li>`).join('')}</ul>` : ''}
     </div>
     <div class="card">
-      <h2>${hi('heart')} Wellbeing <span class="spacer"></span><a class="card-link" href="#/health">Health ${icon('chevR')}</a></h2>
-      <div class="small muted">How are you feeling?</div>
-      <div class="moods" style="margin:6px 0 12px">${MOODS.map((e, i) => `<button class="mood-btn ${h.mood == i + 1 ? 'on' : ''}" data-action="setMood" data-id="${t}|${i + 1}" aria-label="${MOOD_LABELS[i]}">${e}</button>`).join('')}</div>
-      <div class="row"><span class="small muted grow">Water ${h.water || 0}/${WATER_GOAL} glasses</span>
-        <button class="btn sm" data-action="water" data-id="${t}|-1">−</button><button class="btn sm" data-action="water" data-id="${t}|1">+ ${icon('drop')}</button></div>
-      <div style="margin-top:6px">${bar(((h.water || 0) / WATER_GOAL) * 100, (h.water || 0) >= WATER_GOAL ? 'done' : '')}</div>
-    </div>
-    <div class="card">
       <h2>${hi('wallet')} Finances <span class="spacer"></span><a class="card-link" href="#/finances">Details ${icon('chevR')}</a></h2>
       <div class="kv"><span>Savings (MVR)</span><b>${fmtCur(sv.MVR, 'MVR')}</b></div>
       <div class="kv"><span>Savings (USD)</span><b>${fmtCur(sv.USD, 'USD')}</b></div>
@@ -126,8 +117,6 @@ views.today = () => {
       <div class="prompt small">${icon('chat')} ${esc(dailyPrompt())}</div>
       ${jToday ? `<button class="btn sm" data-action="editJournal" data-id="${jToday.id}">Continue today’s entry</button>` : '<button class="btn primary sm" data-action="newJournal">Write today’s entry</button>'}
     </div>
-    ${db.habits.length ? `<div class="card"><h2>${hi('repeat')} Habits <span class="spacer"></span><a class="card-link" href="#/habits">Manage ${icon('chevR')}</a></h2>
-      <ul class="items">${db.habits.map((x) => habitRow(x, true)).join('')}</ul></div>` : ''}
   </div>`;
 };
 
