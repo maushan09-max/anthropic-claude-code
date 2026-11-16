@@ -5,7 +5,7 @@ const NAV = [
   ['Planner', [['today', 'Today', 'sun'], ['review', 'Weekly review', 'chart'], ['weekly', 'Weekly to-do', 'calWeek'], ['monthly', 'Monthly to-do', 'calendar'], ['duties', 'Duty roster', 'badge'], ['leave', 'Leave planner', 'palm']]],
   ['Home & health', [['meals', 'Meal prep', 'bowl'], ['shopping', 'Shopping list', 'cart'], ['health', 'Health', 'heart']]],
   ['Money & travel', [['finances', 'Finances', 'wallet'], ['travel', 'Travel plans', 'plane']]],
-  ['Personal', [['journal', 'Journal', 'book'], ['faith', 'Prayer & Quran', 'moonStar'], ['study', 'Study plan', 'grad'], ['dates', 'Special dates', 'gift'], ['habits', 'Habits', 'repeat'], ['goals', 'Goals', 'target'], ['notes', 'Notes', 'note']]],
+  ['Personal', [['journal', 'Journal', 'book'], ['faith', 'Prayer & Quran', 'moonStar'], ['study', 'Study plan', 'grad'], ['dates', 'Special dates', 'gift'], ['notes', 'Notes', 'note']]],
   ['', [['settings', 'Settings', 'sliders']]],
 ];
 const VIEWS = [...NAV.flatMap((g) => g[1]), ['search', 'Search', 'search']];

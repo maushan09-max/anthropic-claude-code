@@ -293,9 +293,7 @@ forms.addListItem = (f) => {
 };
 
 // ================= HEALTH =================
-const healthOf = (d) => db.health[d] || {};
-const setHealth = (d, patch) => { db.health[d] = { ...healthOf(d), ...patch }; };
-const HEALTH_TABS = [['daily', 'clipboard', 'Daily'], ['body', 'ruler', 'Body'], ['cycle', 'flower', 'Cycle'], ['poop', 'bowel', 'Poop'], ['meds', 'pill', 'Meds']].map(([k, ic, l]) => [k, `${icon(ic)} ${l}`]);
+const HEALTH_TABS = [['body', 'ruler', 'Body'], ['cycle', 'flower', 'Cycle'], ['poop', 'bowel', 'Poop'], ['meds', 'pill', 'Meds']].map(([k, ic, l]) => [k, `${icon(ic)} ${l}`]);
 
 views.health = () => `${tabs('healthTab', state.healthTab, HEALTH_TABS)}<div style="margin-top:14px">${healthTabs[state.healthTab]()}</div>`;
 TOP_ACTIONS.health = () => ({ body: ['newBody', '+ Measurement'], meds: ['newMed', '+ Medication'], poop: ['poopAdd', '+ Log', state.poopDay] }[state.healthTab]);
@@ -303,42 +301,6 @@ state.poopDay = today(); state.medDay = today();
 actions.healthTab = (k) => { state.healthTab = k; render(); };
 actions.goHealth = (k) => { state.healthTab = k; location.hash = '#/health'; render(); };
 const healthTabs = {};
-
-healthTabs.daily = () => {
-  const d = state.healthDay, h = healthOf(d);
-  const days = []; for (let i = 13; i >= 0; i--) days.push(addDays(today(), -i));
-  const chart = (key, max, color, unit) => {
-    const vals = days.map((x) => Number(healthOf(x)[key] || 0));
-    const top = Math.max(max, ...vals), logged = vals.filter(Boolean);
-    const avg = logged.length ? round1(logged.reduce((s, n) => s + n, 0) / logged.length) : '–';
-    return `<div class="small muted">14-day average: <b>${avg}${logged.length ? ' ' + unit : ''}</b></div>
-      <div class="chart">${days.map((x, i) => `<div class="col" title="${esc(fmtDate(x))}: ${vals[i]} ${unit}"><i style="height:${(vals[i] / top) * 100}%;background:${color}"></i><small>${parseYmd(x).getDate()}</small></div>`).join('')}</div>`;
-  };
-  return `
-  <div class="toolbar"><div class="navgroup"><button class="btn" data-action="healthNav" data-id="-1" aria-label="Previous day">${icon('chevL')}</button>
-    <b class="nav-label">${d === today() ? 'Today' : esc(fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' }))}</b>
-    <button class="btn" data-action="healthNav" data-id="1" ${d >= today() ? 'disabled' : ''} aria-label="Next day">${icon('chevR')}</button></div></div>
-  <div class="grid">
-    <div class="card"><h2>${hi('mood4')} Mood</h2><div class="moods">${MOODS.map((e, i) => `<button class="mood-btn ${h.mood == i + 1 ? 'on' : ''}" data-action="setMood" data-id="${d}|${i + 1}" title="${MOOD_LABELS[i]}" aria-label="${MOOD_LABELS[i]}">${e}</button>`).join('')}</div></div>
-    <div class="card"><h2>${hi('drop')} Water<span class="spacer"></span><span class="small muted">${h.water || 0} / ${WATER_GOAL}</span></h2>
-      <div class="water">${Array.from({ length: Math.max(WATER_GOAL, h.water || 0) }, (_, i) => `<span class="${i < (h.water || 0) ? 'on' : ''}">${icon('drop', 'fill')}</span>`).join('')}</div>
-      <div class="row"><button class="btn sm" data-action="water" data-id="${d}|-1">− Glass</button><button class="btn sm primary" data-action="water" data-id="${d}|1">+ Glass</button></div></div>
-    <div class="card"><h2>${hi('clipboard')} Daily log</h2>
-      <div class="form-grid">
-        <label class="field"><span>Sleep (hours)</span><input type="number" step="0.5" min="0" max="24" inputmode="decimal" value="${esc(h.sleep ?? '')}" data-change="health" data-id="${d}|sleep"></label>
-        <label class="field"><span>Exercise (min)</span><input type="number" step="5" min="0" inputmode="numeric" value="${esc(h.exercise ?? '')}" data-change="health" data-id="${d}|exercise"></label>
-        <label class="field"><span>Steps</span><input type="number" step="100" min="0" inputmode="numeric" value="${esc(h.steps ?? '')}" data-change="health" data-id="${d}|steps"></label>
-      </div>
-      <label class="field" style="margin-top:10px"><span>Notes (symptoms, meals…)</span><textarea rows="2" data-change="health" data-id="${d}|notes">${esc(h.notes || '')}</textarea></label></div>
-  </div>
-  <div class="section-title">Trends</div>
-  <div class="grid">
-    <div class="card"><h3>${hi('moon')} Sleep</h3>${chart('sleep', 8, 'var(--c1)', 'h')}</div>
-    <div class="card"><h3>${hi('activity')} Exercise</h3>${chart('exercise', 30, 'var(--c2)', 'min')}</div>
-    <div class="card"><h3>${hi('drop')} Water</h3>${chart('water', WATER_GOAL, 'var(--c3)', 'glasses')}</div>
-    <div class="card"><h3>${hi('mood4')} Mood</h3>${chart('mood', 5, 'var(--c4)', '/5')}</div>
-  </div>`;
-};
 
 // ---- Body measurements ----
 const BODY_FIELDS = [['weight', 'Weight', 'kg', '#9b3fc4', 'scale'], ['waist', 'Waist', 'cm', '#e6489b', 'tape'], ['arm', 'Arms', 'cm', '#c084fc', 'ruler'], ['hip', 'Hips', 'cm', '#f472b6', 'tape']];
@@ -624,12 +586,4 @@ Object.assign(actions, {
     if (!Object.keys(day).length) delete m.log[d];
     commit();
   },
-  setMood: (id) => { const [d, n] = split(id); setHealth(d, { mood: healthOf(d).mood == n ? null : Number(n) }); commit(); },
-  water: (id) => { const [d, n] = split(id); setHealth(d, { water: Math.max(0, (healthOf(d).water || 0) + Number(n)) }); commit(); },
-  healthNav: (n) => { const d = addDays(state.healthDay, Number(n)); if (d <= today()) { state.healthDay = d; render(); } },
 });
-changes.health = (el) => {
-  const [d, key] = split(el.dataset.id);
-  setHealth(d, { [key]: key === 'notes' ? el.value : el.value === '' ? null : Number(el.value) });
-  save();
-};
